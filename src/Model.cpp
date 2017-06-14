@@ -42,7 +42,8 @@ void Model::setDiffuseMapOfAllMeshes(Texture* diffuseMap)
 
 void Model::setSpecularMapOfAllMeshes(Texture* specularMap)
 {
-
+	for (unsigned int i = 0; i < this->meshes.size(); ++i)
+		meshes[i]->setSpecularMap(specularMap);
 }
 
 void Model::setSpecularShinenessOfAllMeshes(float specularShineness)
