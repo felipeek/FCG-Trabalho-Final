@@ -25,6 +25,7 @@ namespace raw
 		void createShaders();
 		void createLights();
 		void createEntities();
+		glm::vec4 getNewPositionForMovement(glm::vec4 position, glm::vec4 direction);
 		
 		ShaderType shaderType;
 		Shader* basicShader;

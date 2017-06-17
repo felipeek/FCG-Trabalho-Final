@@ -61,8 +61,8 @@ TerrainType Map::getTerrainType(const glm::vec4& position) const
 	if (zPos < 0 || zPos > (this->mapHeight - 1) * this->mapZScalement)
 		return TerrainType::OUT;
 
-	int z = floorf((zPos / this->mapZScalement)) * mapChannels;
-	int x = floorf((xPos / this->mapXScalement)) * mapChannels;
+	int z = (int)floorf((zPos / this->mapZScalement)) * mapChannels;
+	int x = (int)floorf((xPos / this->mapXScalement)) * mapChannels;
 
 	pixelColor.r = (float)*(this->mapBytes + (x * this->mapWidth + z));
 	pixelColor.g = (float)*(this->mapBytes + (x * this->mapWidth + z + 1));
@@ -73,6 +73,35 @@ TerrainType Map::getTerrainType(const glm::vec4& position) const
 		return TerrainType::FREE;
 	else
 		return TerrainType::BLOCKED;
+}
+
+TerrainType Map::getTerrainTypeForMovement(const glm::vec4& position) const
+{
+	const float collisionFactor = 0.2f;
+	TerrainType terrainType;
+
+	terrainType = this->getTerrainType(position);
+
+	if (terrainType == TerrainType::BLOCKED || terrainType == TerrainType::OUT)
+		return terrainType;
+
+	glm::vec4 testPositions[6] = { position, position, position, position, position, position };
+
+	testPositions[0].x += collisionFactor;
+	testPositions[1].x -= collisionFactor;
+	testPositions[2].y += collisionFactor;
+	testPositions[3].y -= collisionFactor;
+	testPositions[4].z += collisionFactor;
+	testPositions[5].z -= collisionFactor;
+
+	for (unsigned int i = 0; i < 6; ++i)
+	{
+		terrainType = this->getTerrainType(testPositions[i]);
+		if (terrainType == TerrainType::BLOCKED || terrainType == TerrainType::OUT)
+			return terrainType;
+	}
+
+	return TerrainType::FREE;
 }
 
 Mesh* Map::getMeshForBlockedTerrain(float xPos, float zPos) const

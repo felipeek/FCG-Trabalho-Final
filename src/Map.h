@@ -18,6 +18,7 @@ namespace raw
 		~Map();
 		Model* generateMapModel() const;
 		TerrainType getTerrainType(const glm::vec4& position) const;
+		TerrainType getTerrainTypeForMovement(const glm::vec4& position) const;
 	private:
 		Mesh* getMeshForBlockedTerrain(float xPos, float zPos) const;
 		Mesh* getMeshForFreeTerrain(float xPos, float zPos) const;

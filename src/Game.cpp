@@ -136,30 +136,26 @@ void Game::processInput(bool* keyState, float deltaTime)
 		if (keyState[GLFW_KEY_W])
 		{
 			glm::vec4 cameraPos = this->camera->getPosition();
-			glm::vec4 newPos = cameraPos + cameraSpeed * deltaTime * this->camera->getViewVector();
-			//newPos.y = cameraPos.y;				// Keep y
-			this->camera->setPosition(newPos);
+			glm::vec4 movementDirection = glm::normalize(this->camera->getViewVector());
+			this->camera->setPosition(this->getNewPositionForMovement(cameraPos, movementDirection));
 		}
 		if (keyState[GLFW_KEY_S])
 		{
 			glm::vec4 cameraPos = this->camera->getPosition();
-			glm::vec4 newPos = cameraPos - cameraSpeed * deltaTime * this->camera->getViewVector();
-			//newPos.y = cameraPos.y;				// Keep y
-			this->camera->setPosition(newPos);
+			glm::vec4 movementDirection = -glm::normalize(this->camera->getViewVector());
+			this->camera->setPosition(this->getNewPositionForMovement(cameraPos, movementDirection));
 		}
 		if (keyState[GLFW_KEY_A])
 		{
 			glm::vec4 cameraPos = this->camera->getPosition();
-			glm::vec4 newPos = cameraPos - cameraSpeed * deltaTime * this->camera->getXAxis();
-			//newPos.y = cameraPos.y;				// Keep y
-			this->camera->setPosition(newPos);
+			glm::vec4 movementDirection = -glm::normalize(this->camera->getXAxis());
+			this->camera->setPosition(this->getNewPositionForMovement(cameraPos, movementDirection));
 		}
 		if (keyState[GLFW_KEY_D])
 		{
 			glm::vec4 cameraPos = this->camera->getPosition();
-			glm::vec4 newPos = cameraPos + cameraSpeed * deltaTime * this->camera->getXAxis();
-			//newPos.y = cameraPos.y;				// Keep y
-			this->camera->setPosition(newPos);
+			glm::vec4 movementDirection = glm::normalize(this->camera->getXAxis());
+			this->camera->setPosition(this->getNewPositionForMovement(cameraPos, movementDirection));
 		}
 	}
 
@@ -309,4 +305,32 @@ void Game::createEntities()
 	//this->entities.push_back(sphereEntity);
 	//this->entities.push_back(quadEntity);
 	this->entities.push_back(mapEntity);
+}
+
+// Returns a new position based on an original position and a movement direction.
+// If there are no collisions, the new position will just be the original position + movementSpeed * direction
+// If there is a collision, instead of just returning the original position (no movement), try to return
+// the best position based on the map. (Try to slide when colliding with walls).
+// Method will only work for map where walls are parallel to X and Z axes.z
+glm::vec4 Game::getNewPositionForMovement(glm::vec4 position, glm::vec4 direction)
+{
+	static const float movementSpeed = 0.05f;
+	glm::vec4 newPos = position + movementSpeed * direction;
+	newPos.y = position.y;
+
+	glm::vec4 auxiliarVector;
+
+	auxiliarVector = position;
+	auxiliarVector.x = newPos.x;
+	TerrainType terrainType = this->map->getTerrainTypeForMovement(auxiliarVector);
+	if (terrainType != TerrainType::FREE)
+		newPos.x = position.x;
+
+	auxiliarVector = position;
+	auxiliarVector.z = newPos.z;
+	terrainType = this->map->getTerrainTypeForMovement(auxiliarVector);
+	if (terrainType != TerrainType::FREE)
+		newPos.z = position.z;
+
+	return newPos;
 }
