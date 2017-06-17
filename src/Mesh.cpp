@@ -9,14 +9,16 @@ using namespace raw;
 // indices: an array containing all indices thar define the mesh.
 // diffuseMap: a texture map defining the diffuse color of the object.
 // specularMap: a texture map defining the specular color of the object.
+// normalMap: a texture map defining the normals of the object. If used, it will replace the vertice normals.
 // specularShineness: a value defining the shineness of the specular color.
 Mesh::Mesh(const std::vector<Vertex>& vertices, const std::vector<unsigned int>& indices,
-	Texture* diffuseMap, Texture* specularMap, float specularShineness)
+	Texture* diffuseMap, Texture* specularMap, Texture* normalMap, float specularShineness)
 {
 	this->vertices = vertices;
 	this->indices = indices;
 	this->setDiffuseMap(diffuseMap);
 	this->setSpecularMap(specularMap);
+	this->setNormalMap(normalMap);
 	this->specularShineness = specularShineness;
 	this->renderMode = MeshRenderMode::TRIANGLES;
 	this->createVAO();
@@ -48,6 +50,20 @@ void Mesh::render(const Shader& shader) const
 		glUniform1i(materialDiffuseMapLocation, 0);
 		glUniform1i(materialSpecularMapLocation, 1);
 		glUniform1f(materialShinenessLocation, this->specularShineness);
+
+		if (this->normalMap != 0)
+		{
+			this->getNormalMap()->bind(GL_TEXTURE2);
+			GLuint materialNormalMapLocation = glGetUniformLocation(shader.getProgram(), "material.normalMap");
+			GLuint materialUseNormalMapLocation = glGetUniformLocation(shader.getProgram(), "material.useNormalMap");
+			glUniform1i(materialNormalMapLocation, 2);
+			glUniform1i(materialUseNormalMapLocation, true);
+		}
+		else
+		{
+			GLuint materialUseNormalMapLocation = glGetUniformLocation(shader.getProgram(), "material.useNormalMap");
+			glUniform1i(materialUseNormalMapLocation, false);
+		}
 	}
 
 	glBindVertexArray(this->VAO);
@@ -65,8 +81,9 @@ Texture* Mesh::getDiffuseMap() const
 	return this->diffuseMap;
 }
 
-// Set the mesh's diffuseMap. If there was already a diffuseMap set, call freeTexture to notify the
-// TextureFactory that there is one less reference of the old texture.
+// Set the mesh's diffuseMap. If there was already a diffuseMap set, decrease the number of references
+// and call destroy().
+// Also, increase the number of references of new diffuseMap.
 void Mesh::setDiffuseMap(Texture* diffuseMap)
 {
 	if (this->diffuseMap != 0)
@@ -92,8 +109,9 @@ Texture* Mesh::getSpecularMap() const
 	return this->specularMap;
 }
 
-// Set the mesh's specularMap. If there was already a specularMap set, call freeTexture to notify the
-// TextureFactory that there is one less reference of the old texture.
+// Set the mesh's specularMap. If there was already a specularMap set, decrease the number of references
+// and call destroy().
+// Also, increase the number of references of new specularMap.
 void Mesh::setSpecularMap(Texture* specularMap)
 {
 	if (this->specularMap != 0)
@@ -111,6 +129,29 @@ void Mesh::setSpecularMap(Texture* specularMap)
 	{
 		this->specularMap = Mesh::getDefaultSpecularMap();
 		this->specularMap->increaseReferences();
+	}
+}
+
+Texture* Mesh::getNormalMap() const
+{
+	return this->normalMap;
+}
+
+// Set the mesh's normalMap. If there was already a normalMap set, decrease the number of references
+// and call destroy().
+// Also, increase the number of references of new normalMap.
+void Mesh::setNormalMap(Texture* normalMap)
+{
+	if (this->normalMap != 0)
+	{
+		this->normalMap->decreaseReferences();
+		Texture::destroy(this->normalMap);
+	}
+
+	if (normalMap != 0)
+	{
+		this->normalMap = normalMap;
+		this->normalMap->increaseReferences();
 	}
 }
 
@@ -148,14 +189,17 @@ void Mesh::createVAO()
 	glBufferData(GL_ARRAY_BUFFER, this->vertices.size() * sizeof(Vertex), 0, GL_STATIC_DRAW);
 	glBufferSubData(GL_ARRAY_BUFFER, 0, this->vertices.size() * sizeof(Vertex), &this->vertices[0]);
 
-	glVertexAttribPointer(0, 4, GL_FLOAT, GL_FALSE, 10 * sizeof(GLfloat), (void*)(0 * sizeof(GLfloat)));
+	glVertexAttribPointer(0, 4, GL_FLOAT, GL_FALSE, 14 * sizeof(GLfloat), (void*)(0 * sizeof(GLfloat)));
 	glEnableVertexAttribArray(0);
 
-	glVertexAttribPointer(1, 4, GL_FLOAT, GL_FALSE, 10 * sizeof(GLfloat), (void*)(4 * sizeof(GLfloat)));
+	glVertexAttribPointer(1, 4, GL_FLOAT, GL_FALSE, 14 * sizeof(GLfloat), (void*)(4 * sizeof(GLfloat)));
 	glEnableVertexAttribArray(1);
 
-	glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 10 * sizeof(GLfloat), (void*)(8 * sizeof(GLfloat)));
+	glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 14 * sizeof(GLfloat), (void*)(8 * sizeof(GLfloat)));
 	glEnableVertexAttribArray(2);
+
+	glVertexAttribPointer(3, 4, GL_FLOAT, GL_FALSE, 14 * sizeof(GLfloat), (void*)(10 * sizeof(GLfloat)));
+	glEnableVertexAttribArray(3);
 
 	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
 	glBufferData(GL_ELEMENT_ARRAY_BUFFER, this->indices.size() * sizeof(unsigned int), 0, GL_STATIC_DRAW);
@@ -171,8 +215,8 @@ void Mesh::createVAO()
 
 Texture* Mesh::defaultDiffuseMap = 0;
 Texture* Mesh::defaultSpecularMap = 0;
-const char* Mesh::defaultDiffuseMapPath = ".\\res\\defaultDiffuseMap.png";
-const char* Mesh::defaultSpecularMapPath = ".\\res\\defaultSpecularMap.png";
+const char* Mesh::defaultDiffuseMapPath = ".\\res\\art\\defaultDiffuseMap.png";
+const char* Mesh::defaultSpecularMapPath = ".\\res\\art\\defaultSpecularMap.png";
 
 // Returns a default diffuseMap.
 Texture* Mesh::getDefaultDiffuseMap()
@@ -198,21 +242,28 @@ Texture* Mesh::getDefaultSpecularMap()
 	return Mesh::defaultSpecularMap;
 }
 
+glm::vec4 Mesh::getTangentVector(glm::vec2 diffUV1, glm::vec2 diffUV2, glm::vec4 edge1, glm::vec4 edge2)
+{
+	float f = 1.0f / (diffUV1.x * diffUV2.y - diffUV1.y * diffUV2.x);
+	glm::vec4 tangentVector = f * (edge1 * diffUV2.y - edge2 * diffUV1.y);
+	return tangentVector;
+}
+
 // Quad: A quad is a special type of Mesh which its vertices are defined as a simple square.
 // Useful to render 2D entities.
-Quad::Quad() : Mesh(Quad::quadVertices, Quad::quadIndices, 0, 0, 128.0f)
+Quad::Quad() : Mesh(Quad::quadVertices, Quad::quadIndices, 0, 0, 0, 128.0f)
 {
 
 }
 
 Quad::Quad(Texture* diffuseMap) : Mesh(Quad::quadVertices, Quad::quadIndices,
-	diffuseMap, 0, 128.0f)
+	diffuseMap, 0, 0, 128.0f)
 {
 
 }
 
-Quad::Quad(Texture* diffuseMap, Texture* specularMap, float specularShineness) : 
-	Mesh(Quad::quadVertices, Quad::quadIndices, diffuseMap, specularMap, 128.0f)
+Quad::Quad(Texture* diffuseMap, Texture* specularMap, Texture* normalMap, float specularShineness) : 
+	Mesh(Quad::quadVertices, Quad::quadIndices, diffuseMap, specularMap, normalMap, 128.0f)
 {
 
 }

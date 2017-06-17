@@ -3,9 +3,8 @@
 #include "PointLight.h"
 #include "SpotLight.h"
 #include "DirectionalLight.h"
+#include "Map.h"
 #include "GLFW\glfw3.h"
-
-#define internal static
 
 using namespace raw;
 
@@ -21,11 +20,15 @@ Game::~Game()
 
 void Game::init()
 {
+	// Create Map
+	this->map = new Map(".\\res\\map\\map.png");
+
 	// Create Shaders
 	this->createShaders();
 
 	// Create Camera
-	this->camera = new Camera();
+	glm::vec4 initialPosition = glm::vec4(1.2f, 0.3f, 1.2f, 1.0f);
+	this->camera = new Camera(initialPosition, glm::vec4(0.0f, 1.0f, 0.0f, 0.0f), glm::vec4(0.0f, 0.0f, -1.0f, 0.0f));
 
 	// Create Lights
 	this->createLights();
@@ -36,12 +39,6 @@ void Game::init()
 
 void Game::render() const
 {
-	if (this->boundSpotLight)
-	{
-		this->boundSpotLight->setPosition(camera->getPosition());
-		this->boundSpotLight->setDirection(camera->getViewVector());
-	}
-
 	switch (this->shaderType)
 	{
 		case ShaderType::BASIC:
@@ -65,11 +62,18 @@ void Game::render() const
 
 void Game::update(float deltaTime)
 {
-	// @TODO
+	if (this->boundSpotLight)
+	{
+		this->boundSpotLight->setPosition(camera->getPosition());
+		this->boundSpotLight->setDirection(camera->getViewVector());
+	}
 }
 
 void Game::destroy()
 {
+	// Destroy map
+	delete this->map;
+	
 	// Destroy Shaders
 	delete this->basicShader;
 	delete this->phongShader;
@@ -87,12 +91,13 @@ void Game::destroy()
 		delete this->entities[i];				// Delete Entity
 	}
 
-	this->lights.clear();
-	this->entities.clear();
+	this->map = 0;
 	this->basicShader = 0;
 	this->phongShader = 0;
 	this->gouradShader = 0;
 	this->flatShader = 0;
+	this->lights.clear();
+	this->entities.clear();
 
 	// Destroy Textures
 	// @TODO: destroyAll can't destroy default diffuseMap and default specularMap,
@@ -131,22 +136,30 @@ void Game::processInput(bool* keyState, float deltaTime)
 		if (keyState[GLFW_KEY_W])
 		{
 			glm::vec4 cameraPos = this->camera->getPosition();
-			this->camera->setPosition(cameraPos + cameraSpeed * deltaTime * this->camera->getViewVector());
+			glm::vec4 newPos = cameraPos + cameraSpeed * deltaTime * this->camera->getViewVector();
+			//newPos.y = cameraPos.y;				// Keep y
+			this->camera->setPosition(newPos);
 		}
 		if (keyState[GLFW_KEY_S])
 		{
 			glm::vec4 cameraPos = this->camera->getPosition();
-			this->camera->setPosition(cameraPos - cameraSpeed * deltaTime * this->camera->getViewVector());
+			glm::vec4 newPos = cameraPos - cameraSpeed * deltaTime * this->camera->getViewVector();
+			//newPos.y = cameraPos.y;				// Keep y
+			this->camera->setPosition(newPos);
 		}
 		if (keyState[GLFW_KEY_A])
 		{
 			glm::vec4 cameraPos = this->camera->getPosition();
-			this->camera->setPosition(cameraPos - cameraSpeed * deltaTime * this->camera->getXAxis());
+			glm::vec4 newPos = cameraPos - cameraSpeed * deltaTime * this->camera->getXAxis();
+			//newPos.y = cameraPos.y;				// Keep y
+			this->camera->setPosition(newPos);
 		}
 		if (keyState[GLFW_KEY_D])
 		{
 			glm::vec4 cameraPos = this->camera->getPosition();
-			this->camera->setPosition(cameraPos + cameraSpeed * deltaTime * this->camera->getXAxis());
+			glm::vec4 newPos = cameraPos + cameraSpeed * deltaTime * this->camera->getXAxis();
+			//newPos.y = cameraPos.y;				// Keep y
+			this->camera->setPosition(newPos);
 		}
 	}
 
@@ -158,6 +171,12 @@ void Game::processInput(bool* keyState, float deltaTime)
 			boundEntity->getTransform().incRotY(rotationSpeed * deltaTime);
 		if (keyState[GLFW_KEY_Z])
 			boundEntity->getTransform().incRotZ(rotationSpeed * deltaTime);
+	}
+
+	if (this->boundPointLight)
+	{
+		if (keyState[GLFW_KEY_UP])
+			boundPointLight->setPosition(boundPointLight->getPosition() + deltaTime * 5.0f * camera->getViewVector());
 	}
 
 	if (keyState[GLFW_KEY_B])
@@ -203,9 +222,10 @@ void Game::createLights()
 	};
 
 	// POINT LIGHT
-	glm::vec4 plPosition = glm::vec4(-1.5f, 0.5f, 0.0f, 1.0f);
+	glm::vec4 plPosition = glm::vec4(0.0f, 1.0f, 0.0f, 1.0f);
 	PointLight* pointLight = new PointLight(plPosition, ambientLight, diffuseLight, specularLight);
 	pointLight->setAttenuation(attenuation);
+	this->boundPointLight = pointLight;	// @TEMPORARY
 
 	// SPOT LIGHT
 	glm::vec4 slPosition = glm::vec4(0, 0, 1, 1);
@@ -222,64 +242,71 @@ void Game::createLights()
 		specularLight);
 
 	// VECTOR CREATION
-	this->lights.push_back(pointLight);
+	//this->lights.push_back(pointLight);
 	this->lights.push_back(spotLight);
 	this->lights.push_back(directionalLight);
 }
 
+Entity* e;
+
 void Game::createEntities()
 {
 	// CREATE A CUBE (cube.obj)
-	Texture* diffuseMap = Texture::load(".\\res\\green.png");
-	Model* cubeModel = new Model(".\\res\\cube.obj");
+	Texture* diffuseMap = Texture::load(".\\res\\art\\green.png");
+	Model* cubeModel = new Model(".\\res\\art\\cube.obj");
 	Entity* cubeEntity = new Entity(cubeModel);
 	cubeModel->setDiffuseMapOfAllMeshes(diffuseMap);
 	cubeEntity->getTransform().setWorldPosition(glm::vec4(-8.0f, 0.0f, 9.0f, 1.0f));
 	cubeEntity->getTransform().setWorldRotation(glm::vec3(0.35f, 0.77f, 0.12f));
 
 	// CREATE COMPLEX MODEL (nanosuit.obj)
-	Model* complexModel = new Model(".\\res\\nanosuit\\nanosuit.obj");
-	Entity* complexEntity = new Entity(complexModel);
-	complexEntity->getTransform().setWorldPosition(glm::vec4(-5.0f, 0.0f, 0.0f, 1.0f));
+	//Model* complexModel = new Model(".\\res\\art\\nanosuit\\nanosuit.obj");
+	//Entity* complexEntity = new Entity(complexModel);
+	//complexEntity->getTransform().setWorldPosition(glm::vec4(-5.0f, 0.0f, 0.0f, 1.0f));
+	//
+	//// CREATE BUNNY MODEL (bunny.obj)
+	//Texture* bunnyDiffuseMap = Texture::load(".\\res\\art\\blue2.png");
+	//Texture* bunnySpecularMap = Texture::load(".\\res\\art\\specBunny.png");
+	//Model* bunnyModel = new Model(".\\res\\art\\bunny.obj");
+	//bunnyModel->setDiffuseMapOfAllMeshes(bunnyDiffuseMap);
+	//bunnyModel->setSpecularMapOfAllMeshes(bunnySpecularMap);
+	//bunnyModel->setSpecularShinenessOfAllMeshes(32.0f);
+	//Entity* bunnyEntity = new Entity(bunnyModel);
+	//bunnyEntity->getTransform().setWorldPosition(glm::vec4(0.0f, 0.0f, -10.0f, 1.0f));
+	//this->boundEntity = bunnyEntity;		// @TEMPORARY
+	//
+	//// CREATE TREE MODEL (arvore.obj)
+	//Texture* arvoreTexture = Texture::load(".\\res\\art\\arvore_tex.png");
+	//Model* arvoreModel = new Model(".\\res\\art\\arvore.obj");
+	//Entity* arvoreEntity = new Entity(arvoreModel);
+	//arvoreModel->setDiffuseMapOfAllMeshes(arvoreTexture);
+	//arvoreEntity->getTransform().setWorldPosition(glm::vec4(0.0f, 0.0f, 6.0f, 1.0f));
+	//
+	//// CREATE SPHERE MODEL (sphere.obj)
+	//Texture* sphereTexture = Texture::load(".\\res\\art\\blue2.png");
+	//Model* sphereModel = new Model(".\\res\\art\\sphere.obj");
+	//Entity* sphereEntity = new Entity(sphereModel);
+	//sphereModel->getMeshes()[0]->setDiffuseMap(sphereTexture);
+	//arvoreEntity->getTransform().setWorldPosition(glm::vec4(1.0f, 0.0f, 10.0f, 1.0f));
+	//
+	//// CREATE QUAD
+	//Texture* quadTexture = Texture::load(".\\res\\art\\smile.png");
+	//Quad* quad = new Quad(quadTexture);
+	//std::vector<Mesh*> quadMeshes = std::vector<Mesh*>({ quad });
+	//Model* quadModel = new Model(quadMeshes);
+	//Entity* quadEntity = new Entity(quadModel);
+	//quadEntity->getTransform().setWorldPosition(glm::vec4(10.5f, 0.0f, 10.0f, 1.0f));
 
-	// CREATE BUNNY MODEL (bunny.obj)
-	Texture* bunnyDiffuseMap = Texture::load(".\\res\\blue2.png");
-	Texture* bunnySpecularMap = Texture::load(".\\res\\specBunny.png");
-	Model* bunnyModel = new Model(".\\res\\bunny.obj");
-	bunnyModel->setDiffuseMapOfAllMeshes(bunnyDiffuseMap);
-	bunnyModel->setSpecularMapOfAllMeshes(bunnySpecularMap);
-	bunnyModel->setSpecularShinenessOfAllMeshes(32.0f);
-	Entity* bunnyEntity = new Entity(bunnyModel);
-	bunnyEntity->getTransform().setWorldPosition(glm::vec4(0.0f, 0.0f, -10.0f, 1.0f));
-	this->boundEntity = bunnyEntity;		// @TEMPORARY
-
-	// CREATE TREE MODEL (arvore.obj)
-	Texture* arvoreTexture = Texture::load(".\\res\\arvore_tex.png");
-	Model* arvoreModel = new Model(".\\res\\arvore.obj");
-	Entity* arvoreEntity = new Entity(arvoreModel);
-	arvoreModel->setDiffuseMapOfAllMeshes(arvoreTexture);
-	arvoreEntity->getTransform().setWorldPosition(glm::vec4(0.0f, 0.0f, 6.0f, 1.0f));
-
-	// CREATE SPHERE MODEL (sphere.obj)
-	Texture* sphereTexture = Texture::load(".\\res\\blue2.png");
-	Model* sphereModel = new Model(".\\res\\sphere.obj");
-	Entity* sphereEntity = new Entity(sphereModel);
-	sphereModel->getMeshes()[0]->setDiffuseMap(sphereTexture);
-	arvoreEntity->getTransform().setWorldPosition(glm::vec4(1.0f, 0.0f, 10.0f, 1.0f));
-
-	// CREATE QUAD
-	Texture* quadTexture = Texture::load(".\\res\\smile.png");
-	Quad* quad = new Quad(quadTexture);
-	std::vector<Mesh*> quadMeshes = std::vector<Mesh*>({ quad });
-	Model* quadModel = new Model(quadMeshes);
-	Entity* quadEntity = new Entity(quadModel);
-	quadEntity->getTransform().setWorldPosition(glm::vec4(10.5f, 0.0f, 10.0f, 1.0f));
+	// temporary
+	Model* mapModel = this->map->generateMapModel();
+	Entity* mapEntity = new Entity(mapModel);
 
 	// VECTOR CREATION
 	this->entities.push_back(cubeEntity);
-	this->entities.push_back(complexEntity);
-	this->entities.push_back(bunnyEntity);
-	this->entities.push_back(arvoreEntity);
-	this->entities.push_back(sphereEntity);
-	this->entities.push_back(quadEntity);
+	//this->entities.push_back(complexEntity);
+	//this->entities.push_back(bunnyEntity);
+	//this->entities.push_back(arvoreEntity);
+	//this->entities.push_back(sphereEntity);
+	//this->entities.push_back(quadEntity);
+	this->entities.push_back(mapEntity);
 }

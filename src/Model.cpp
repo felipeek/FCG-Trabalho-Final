@@ -125,6 +125,14 @@ Mesh* Model::processMesh(aiMesh* mesh, const aiScene* scene, char* directory)
 		vertex.normal.z = mesh->mNormals[i].z;
 		vertex.normal.w = 0.0f;
 
+		if (mesh->mTangents)
+		{
+			vertex.tangent.x = mesh->mTangents[i].x;
+			vertex.tangent.y = mesh->mTangents[i].y;
+			vertex.tangent.z = mesh->mTangents[i].z;
+			vertex.tangent.w = 0.0f;
+		}
+		
 		if (mesh->mTextureCoords[0])
 		{
 			vertex.textureCoordinates.x = mesh->mTextureCoords[0][i].x;
@@ -149,7 +157,7 @@ Mesh* Model::processMesh(aiMesh* mesh, const aiScene* scene, char* directory)
 		specularMap = this->loadMaterialTexture(material, aiTextureType_SPECULAR, directory);
 	}
 
-	return new Mesh(vertices, indices, diffuseMap, specularMap, 128);
+	return new Mesh(vertices, indices, diffuseMap, specularMap, 0, 128.0f);
 }
 
 Texture* Model::loadMaterialTexture(aiMaterial* material, aiTextureType type, char* directory)

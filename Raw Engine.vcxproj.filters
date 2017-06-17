@@ -57,6 +57,9 @@
     <ClCompile Include="src\Game.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="src\Map.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <None Include="shaders\BasicShader.fs" />
@@ -67,6 +70,7 @@
     <None Include="shaders\PhongShader.vs" />
     <None Include="shaders\FlatShader.fs" />
     <None Include="shaders\FlatShader.vs" />
+    <None Include="src\Map.h" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\Camera.h">

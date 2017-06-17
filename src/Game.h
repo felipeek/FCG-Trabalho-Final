@@ -6,7 +6,9 @@
 
 namespace raw
 {
+	class PointLight;
 	class SpotLight;
+	class Map;
 
 	class Game
 	{
@@ -30,11 +32,13 @@ namespace raw
 		Shader* gouradShader;
 		Shader* phongShader;
 		Camera* camera;
+		Map* map;
 		std::vector<Light*> lights;
 		std::vector<Entity*> entities;
 
 		// Temporary for tests
 		SpotLight* boundSpotLight;
+		PointLight* boundPointLight;
 		Entity* boundEntity;
 	};
 }

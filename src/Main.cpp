@@ -1,16 +1,16 @@
 #include <GL\glew.h>
 #include <GLFW\glfw3.h>
 #include <iostream>
+#include <Windows.h>
 #include "Game.h"
 
 #define WINDOW_WIDTH 800
 #define WINDOW_HEIGHT 600
 #define WINDOW_TITLE "Result.exe"
-#define internal static
 
-internal bool keyState[1024];	// @TODO: Check range.
-internal float deltaTime;
-internal raw::Game* game;
+static bool keyState[1024];	// @TODO: Check range.
+static float deltaTime;
+static raw::Game* game;
 
 void glfwKeyCallback(GLFWwindow* window, int key, int scanCode, int action, int mods)
 {
@@ -94,6 +94,7 @@ int main()
 			++fps;
 
 		deltaTime = (float)(currentFrame - lastFrame);
+
 		lastFrame = currentFrame;
 	}
 

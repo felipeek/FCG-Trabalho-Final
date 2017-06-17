@@ -137,6 +137,7 @@
     <ClCompile Include="src\DirectionalLight.cpp" />
     <ClCompile Include="src\Entity.cpp" />
     <ClCompile Include="src\Light.cpp" />
+    <ClCompile Include="src\Map.cpp" />
     <ClCompile Include="src\Mesh.cpp" />
     <ClCompile Include="src\Model.cpp" />
     <ClCompile Include="src\Main.cpp" />
@@ -172,6 +173,7 @@
     <None Include="shaders\GouradShader.vs" />
     <None Include="shaders\PhongShader.fs" />
     <None Include="shaders\PhongShader.vs" />
+    <None Include="src\Map.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

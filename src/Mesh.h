@@ -14,6 +14,7 @@ namespace raw
 		glm::vec4 position;
 		glm::vec4 normal;
 		glm::vec2 textureCoordinates;
+		glm::vec4 tangent;
 	};
 	#pragma pack(pop)
 
@@ -27,13 +28,15 @@ namespace raw
 	{
 	public:
 		Mesh(const std::vector<Vertex>& vertices, const std::vector<unsigned int>& indices,
-			Texture* diffuseMap, Texture* specularMap, float specularShineness);
+			Texture* diffuseMap, Texture* specularMap, Texture* normalMap, float specularShineness);
 		~Mesh();
 		void render(const Shader& shader) const;
 		Texture* getDiffuseMap() const;
 		void setDiffuseMap(Texture* diffuseMap);
 		Texture* getSpecularMap() const;
 		void setSpecularMap(Texture* diffuseMap);
+		Texture* getNormalMap() const;
+		void setNormalMap(Texture* normalMap);
 		float getSpecularShineness() const;
 		void setSpecularShineness(float specualrShineness);
 		MeshRenderMode getRenderMode() const;
@@ -41,12 +44,14 @@ namespace raw
 
 		static Texture* getDefaultDiffuseMap();
 		static Texture* getDefaultSpecularMap();
+		static glm::vec4 getTangentVector(glm::vec2 diffUV1, glm::vec2 diffUV2, glm::vec4 edge1, glm::vec4 edge2);
 	private:
 		void createVAO();
 		std::vector<Vertex> vertices;
 		std::vector<unsigned int> indices;
 		Texture* diffuseMap;
 		Texture* specularMap;
+		Texture* normalMap;
 		float specularShineness;
 		MeshRenderMode renderMode;
 		GLuint VAO;
@@ -62,7 +67,7 @@ namespace raw
 	public:
 		Quad();
 		Quad(Texture* diffuseMap);
-		Quad(Texture* diffuseMap, Texture* specularMap, float specularShineness);
+		Quad(Texture* diffuseMap, Texture* specularMap, Texture* normalMap, float specularShineness);
 		~Quad();
 	private:
 		static const std::vector<Vertex> quadVertices;
