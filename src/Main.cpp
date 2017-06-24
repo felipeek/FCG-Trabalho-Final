@@ -96,7 +96,7 @@ int main()
 		double currentFrame = glfwGetTime();
 		if ((int)currentFrame > frameNumber)
 		{
-			std::cout << "FPS: " << fps << std::endl;
+		//	std::cout << "FPS: " << fps << std::endl;
 			fps = 0;
 			frameNumber++;
 		}

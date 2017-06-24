@@ -27,6 +27,9 @@ Texture::Texture(const char* texturePath)
 	//glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 	//glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_NEAREST);
 
+	// Anisotropic Filtering
+	glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAX_ANISOTROPY_EXT, 4.0f);
+
 	glBindTexture(GL_TEXTURE_2D, 0);
 
 	stbi_image_free(imageData);

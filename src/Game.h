@@ -30,6 +30,7 @@ namespace raw
 		void processInput(bool* keyState, float deltaTime);
 		void processMouseChange(double xPos, double yPos);
 		void processMouseClick(int button, int action);
+		void updateSecondPlayer(glm::vec4 newPosition, glm::vec4 newLookDirection);
 	private:
 		void createShaders();
 		void createCameras();
@@ -52,6 +53,7 @@ namespace raw
 		CameraType selectedCamera;
 
 		Player* player;
+		Player* secondPlayer;
 		Map* map;
 		std::vector<Light*> lights;
 		std::vector<Entity*> entities;

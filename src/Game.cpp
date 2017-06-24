@@ -6,11 +6,13 @@
 #include "Map.h"
 #include "StaticModels.h"
 #include "GLFW\glfw3.h"
+#include "Network.h"
 
 using namespace raw;
 
 // @TEMPORARY
 float x, y, z, xx, yy, zz;
+bool twoPlayers = true;
 
 Game::Game()
 {
@@ -24,6 +26,9 @@ Game::~Game()
 
 void Game::init()
 {
+	// Init Network
+	Network::initNetwork(this, "127.0.0.1");
+
 	// Create Map
 	this->map = new Map(".\\res\\map\\map.png");
 
@@ -40,6 +45,13 @@ void Game::init()
 	// Create Player
 	this->player = new Player(cubeModel);
 	this->player->getTransform().setWorldScale(glm::vec3(0.5f, 0.5f, 0.5f));
+
+	// Create Second Player
+	if (twoPlayers)
+	{
+		this->secondPlayer = new Player(cubeModel);
+		this->player->getTransform().setWorldScale(glm::vec3(0.5f, 0.5f, 0.5f));
+	}
 
 	// Create Lights
 	this->createLights();
@@ -84,6 +96,9 @@ void Game::render() const
 	if (this->selectedCamera != CameraType::PLAYER)
 		player->render(*shaderToUse, *selectedCamera, this->lights, this->useNormalMap);
 
+	secondPlayer->render(*shaderToUse, *selectedCamera, this->lights, this->useNormalMap);
+	secondPlayer->renderGun(*shaderToUse, *selectedCamera, this->lights, this->useNormalMap);
+
 	// If player camera is being used, clear the depth buffer to render the gun. This way, the gun will always appear
 	// on the screen, regardless if it is behind the wall, for example.
 	if (this->selectedCamera == CameraType::PLAYER)
@@ -96,6 +111,8 @@ void Game::render() const
 	if (this->selectedCamera == CameraType::PLAYER)
 		player->renderAim(*fixedShader);
 }
+
+double lastTime = 0;
 
 void Game::update(float deltaTime)
 {
@@ -114,10 +131,23 @@ void Game::update(float deltaTime)
 	this->lookAtCamera.setPosition(lookAtNewPosition);
 
 	this->player->update();
+	this->secondPlayer->update();
+
+	double currentTime = glfwGetTime();
+
+	if (currentTime > lastTime + 0.1)
+	{
+		Network::sendPlayerInformation(*this->player);
+		Network::receiveAndProcessPackets();
+		lastTime = currentTime;
+	}
 }
 
 void Game::destroy()
 {
+	// Destroy network
+	Network::destroyNetwork();
+
 	// Destroy map
 	delete this->map;
 	
@@ -193,6 +223,12 @@ void Game::processMouseClick(int button, int action)
 {
 	if (button == GLFW_MOUSE_BUTTON_LEFT && action == GLFW_PRESS)
 		this->player->fire();
+}
+
+void Game::updateSecondPlayer(glm::vec4 newPosition, glm::vec4 newLookDirection)
+{
+	this->secondPlayer->getTransform().setWorldPosition(newPosition);
+	this->secondPlayer->changeLookDirection(newLookDirection);
 }
 
 void Game::createShaders()
@@ -453,6 +489,19 @@ void Game::processInput(bool* keyState, float deltaTime)
 	{
 		this->useNormalMap = !this->useNormalMap;
 		keyState[GLFW_KEY_N] = false;					// Force false to only compute one time.
+	}
+
+	if (keyState[GLFW_KEY_P])
+	{
+		//char buffer[2048];
+		//int size = udpReceiver->receiveMessage(buffer, 2048);
+		//if (size > 0)
+		//{
+		//	buffer[size] = 0;
+		//	std::cout << "BUFFER: " << buffer << std::endl;
+		//	//udpServer->sendMessage("hello");
+		//	keyState[GLFW_KEY_P] = false;					// Force false to only compute one time.
+		//}
 	}
 
 	if (keyState[GLFW_KEY_C])
