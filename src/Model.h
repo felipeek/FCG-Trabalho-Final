@@ -17,7 +17,7 @@ namespace raw
 		Model(const std::vector<Mesh*>& meshes);
 		Model(const char* path);
 		~Model();
-		void render(const Shader& shader) const;
+		void render(const Shader& shader, bool useNormalMap) const;
 		std::vector<Mesh*> getMeshes() const;
 		void setDiffuseMapOfAllMeshes(Texture* diffuseMap);
 		void setSpecularMapOfAllMeshes(Texture* specularMap);

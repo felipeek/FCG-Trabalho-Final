@@ -132,6 +132,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="src\Player.cpp" />
     <ClCompile Include="src\Game.cpp" />
     <ClCompile Include="src\Camera.cpp" />
     <ClCompile Include="src\DirectionalLight.cpp" />
@@ -149,6 +150,7 @@
     <ClCompile Include="src\Transform.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="src\Player.h" />
     <ClInclude Include="src\Game.h" />
     <ClInclude Include="src\Camera.h" />
     <ClInclude Include="src\DirectionalLight.h" />
@@ -167,6 +169,8 @@
   <ItemGroup>
     <None Include="shaders\BasicShader.fs" />
     <None Include="shaders\BasicShader.vs" />
+    <None Include="shaders\FixedShader.fs" />
+    <None Include="shaders\FixedShader.vs" />
     <None Include="shaders\FlatShader.fs" />
     <None Include="shaders\FlatShader.vs" />
     <None Include="shaders\GouradShader.fs" />

@@ -43,7 +43,7 @@ const Transform& Entity::getTransform() const
 }
 
 // Render the entity, using the shader, the camera and the vector of lights provided.
-void Entity::render(const Shader& shader, const Camera& camera, const std::vector<Light*>& lights) const
+void Entity::render(const Shader& shader, const Camera& camera, const std::vector<Light*>& lights, bool useNormalMap) const
 {
 	shader.useProgram();
 	GLuint modelMatrixLocation = glGetUniformLocation(shader.getProgram(), "modelMatrix");
@@ -66,5 +66,14 @@ void Entity::render(const Shader& shader, const Camera& camera, const std::vecto
 			lights[i]->updateUniforms(shader, i);
 	}
 
-	this->model->render(shader);
+	this->model->render(shader, useNormalMap);
+}
+
+void Entity::render(const Shader& shader) const
+{
+	shader.useProgram();
+	GLuint modelMatrixLocation = glGetUniformLocation(shader.getProgram(), "modelMatrix");
+	glUniformMatrix4fv(modelMatrixLocation, 1, GL_FALSE, glm::value_ptr(this->transform.getModelMatrix()));
+
+	this->model->render(shader, false);
 }

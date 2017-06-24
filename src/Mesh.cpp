@@ -21,6 +21,7 @@ Mesh::Mesh(const std::vector<Vertex>& vertices, const std::vector<unsigned int>&
 	this->setNormalMap(normalMap);
 	this->specularShineness = specularShineness;
 	this->renderMode = MeshRenderMode::TRIANGLES;
+	this->visible = true;
 	this->createVAO();
 }
 
@@ -33,8 +34,10 @@ Mesh::~Mesh()
 }
 
 // Render the mesh using the shader received as parameter.
-void Mesh::render(const Shader& shader) const
+void Mesh::render(const Shader& shader, bool useNormalMap) const
 {
+	if (!this->visible) return;
+
 	shader.useProgram();
 
 	if (shader.getType() == ShaderType::PHONG || shader.getType() == ShaderType::GOURAD
@@ -51,7 +54,7 @@ void Mesh::render(const Shader& shader) const
 		glUniform1i(materialSpecularMapLocation, 1);
 		glUniform1f(materialShinenessLocation, this->specularShineness);
 
-		if (this->normalMap != 0)
+		if (this->normalMap != 0 && useNormalMap)
 		{
 			this->getNormalMap()->bind(GL_TEXTURE2);
 			GLuint materialNormalMapLocation = glGetUniformLocation(shader.getProgram(), "material.normalMap");
@@ -64,6 +67,12 @@ void Mesh::render(const Shader& shader) const
 			GLuint materialUseNormalMapLocation = glGetUniformLocation(shader.getProgram(), "material.useNormalMap");
 			glUniform1i(materialUseNormalMapLocation, false);
 		}
+	}
+	else if (shader.getType() == ShaderType::FIXED)
+	{
+		this->getDiffuseMap()->bind(GL_TEXTURE0);
+		GLuint fixedTextureLocation = glGetUniformLocation(shader.getProgram(), "fixedTexture");
+		glUniform1i(fixedTextureLocation, 0);
 	}
 
 	glBindVertexArray(this->VAO);
@@ -173,6 +182,16 @@ MeshRenderMode Mesh::getRenderMode() const
 void Mesh::setRenderMode(MeshRenderMode renderMode)
 {
 	this->renderMode = renderMode;
+}
+
+bool Mesh::isVisible() const
+{
+	return this->visible;
+}
+
+void Mesh::setVisible(bool visible)
+{
+	this->visible = visible;
 }
 
 // Create Mesh's VAO (Vertex Array Object).

@@ -15,6 +15,10 @@ Shader::Shader(ShaderType type)
 
 	switch (type)
 	{
+	case ShaderType::FIXED:
+		vertexShaderPath = fixedVertexShaderPath;
+		fragmentShaderPath = fixedFragmentShaderPath;
+		break;
 	case ShaderType::BASIC:
 		vertexShaderPath = basicVertexShaderPath;
 		fragmentShaderPath = basicFragmentShaderPath;

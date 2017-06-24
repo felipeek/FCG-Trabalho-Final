@@ -8,6 +8,7 @@ Transform::Transform()
 	this->worldPosition = glm::vec4(0.0f, 0.0f, 0.0f, 1.0f);
 	this->worldRotation = glm::vec3(0.0f, 0.0f, 0.0f);
 	this->worldScale = glm::vec3(1.0f, 1.0f, 1.0f);
+	this->preTransform = 0;
 }
 
 // Creates a transform receiving the world position, the world rotation and the world scale.
@@ -16,11 +17,13 @@ Transform::Transform(glm::vec4 worldPosition, glm::vec3 worldRotation, glm::vec3
 	this->worldPosition = worldPosition;
 	this->worldRotation = worldRotation;
 	this->worldScale = worldScale;
+	this->preTransform = 0;
 }
 
 Transform::~Transform()
 {
-
+	if (this->preTransform)
+		delete this->preTransform;
 }
 
 glm::vec4 Transform::getWorldPosition() const
@@ -59,9 +62,12 @@ void Transform::setWorldScale(glm::vec3& worldScale)
 	this->updateModelMatrix();
 }
 
-const glm::mat4& Transform::getModelMatrix() const
+const glm::mat4 Transform::getModelMatrix() const
 {
-	return this->modelMatrix;
+	if (this->preTransform)
+		return this->modelMatrix * this->preTransform->getModelMatrix();
+	else
+		return this->modelMatrix;
 }
 
 // Increments the rotation in the x axis of the transform and update the Model Matrix.
@@ -83,6 +89,16 @@ void Transform::incRotZ(float increment)
 {
 	this->worldRotation.z += increment;
 	this->updateModelMatrix();
+}
+
+Transform* Transform::getPreTransform()
+{
+	return this->preTransform;
+}
+
+void Transform::setPreTransform(Transform* preTransform)
+{
+	this->preTransform = preTransform;
 }
 
 // Generates a new Model Matrix based on the translation, the rotation and the scale of the transform.

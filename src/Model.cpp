@@ -23,10 +23,10 @@ Model::~Model()
 }
 
 // Render the model using the shader received as parameter.
-void Model::render(const Shader& shader) const
+void Model::render(const Shader& shader, bool useNormalMap) const
 {
 	for (Mesh* m : this->meshes)
-		m->render(shader);
+		m->render(shader, useNormalMap);
 }
 
 std::vector<Mesh*> Model::getMeshes() const
@@ -109,6 +109,7 @@ Mesh* Model::processMesh(aiMesh* mesh, const aiScene* scene, char* directory)
 	std::vector<unsigned int> indices;
 	Texture* diffuseMap = 0;
 	Texture* specularMap = 0;
+	Texture* normalMap = 0;
 
 	// Fill Vertices
 	for (unsigned int i = 0; i < mesh->mNumVertices; ++i)
@@ -155,9 +156,10 @@ Mesh* Model::processMesh(aiMesh* mesh, const aiScene* scene, char* directory)
 		aiMaterial* material = scene->mMaterials[mesh->mMaterialIndex];
 		diffuseMap = this->loadMaterialTexture(material, aiTextureType_DIFFUSE, directory);
 		specularMap = this->loadMaterialTexture(material, aiTextureType_SPECULAR, directory);
+		normalMap = this->loadMaterialTexture(material, aiTextureType_HEIGHT, directory);
 	}
 
-	return new Mesh(vertices, indices, diffuseMap, specularMap, 0, 128.0f);
+	return new Mesh(vertices, indices, diffuseMap, specularMap, normalMap, 128.0f);
 }
 
 Texture* Model::loadMaterialTexture(aiMaterial* material, aiTextureType type, char* directory)

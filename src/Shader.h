@@ -2,6 +2,8 @@
 
 #include <GL\glew.h>
 
+const char fixedVertexShaderPath[] = ".\\shaders\\FixedShader.vs";
+const char fixedFragmentShaderPath[] = ".\\shaders\\FixedShader.fs";
 const char basicVertexShaderPath[] = ".\\shaders\\BasicShader.vs";
 const char basicFragmentShaderPath[] = ".\\shaders\\BasicShader.fs";
 const char phongVertexShaderPath[] = ".\\shaders\\PhongShader.vs";
@@ -15,6 +17,7 @@ namespace raw
 {
 	enum class ShaderType
 	{
+		FIXED,
 		BASIC,
 		FLAT,
 		GOURAD,

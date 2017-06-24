@@ -2,6 +2,7 @@
 
 #include "Shader.h"
 #include "Light.h"
+#include "Player.h"
 #include <vector>
 
 namespace raw
@@ -9,6 +10,13 @@ namespace raw
 	class PointLight;
 	class SpotLight;
 	class Map;
+
+	enum class CameraType
+	{
+		PLAYER,
+		LOOKAT,
+		FREE
+	};
 
 	class Game
 	{
@@ -21,25 +29,37 @@ namespace raw
 		void destroy();
 		void processInput(bool* keyState, float deltaTime);
 		void processMouseChange(double xPos, double yPos);
+		void processMouseClick(int button, int action);
 	private:
 		void createShaders();
+		void createCameras();
 		void createLights();
 		void createEntities();
-		glm::vec4 getNewPositionForMovement(glm::vec4 position, glm::vec4 direction);
+		glm::vec4 getNewPositionForMovement(glm::vec4 position, glm::vec4 direction, float deltaTime);
+		const Camera* getSelectedCamera() const;
 		
+		// Shaders
 		ShaderType shaderType;
+		Shader* fixedShader;
 		Shader* basicShader;
 		Shader* flatShader;
 		Shader* gouradShader;
 		Shader* phongShader;
-		Camera* camera;
+
+		// Cameras
+		Camera freeCamera;
+		Camera lookAtCamera;
+		CameraType selectedCamera;
+
+		Player* player;
 		Map* map;
 		std::vector<Light*> lights;
 		std::vector<Entity*> entities;
 
+		bool useNormalMap;
+
 		// Temporary for tests
 		SpotLight* boundSpotLight;
-		PointLight* boundPointLight;
 		Entity* boundEntity;
 	};
 }

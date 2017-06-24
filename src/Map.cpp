@@ -322,8 +322,12 @@ Mesh* Map::getMeshForBlockedTerrain(float xPos, float zPos) const
 	meshIndices.push_back(2 + 5 * 4);
 
 	Texture* diffuseMap = Texture::load(".\\res\\art\\brickwall_diffuse.jpg");
-	Texture* specularMap = Texture::load(".\\res\\art\\brickwall_specular.jpg");
+	Texture* specularMap = Texture::load(".\\res\\art\\black.png");
 	Texture* normalMap = Texture::load(".\\res\\art\\brickwall_normal2.jpg");
+
+//	Texture* diffuseMap = Texture::load(".\\res\\art\\tileable_stone_wall_diffuse.jpg");
+//	Texture* specularMap = Texture::load(".\\res\\art\\tileable_stone_wall_specular.jpg");
+//	Texture* normalMap = Texture::load(".\\res\\art\\tileable_stone_wall_normal.jpg");
 
 	return new Mesh(meshVertices, meshIndices, diffuseMap, specularMap, normalMap, 32.0f);
 }
@@ -364,6 +368,8 @@ Mesh* Map::getMeshForFreeTerrain(float xPos, float zPos) const
 	Texture* diffuseMap = Texture::load(".\\res\\art\\grass01.jpg");
 	Texture* specularMap = Texture::load(".\\res\\art\\grass01_s.jpg");
 	Texture* normalMap = Texture::load(".\\res\\art\\grass01_n.jpg");
+	//Texture* specularMap = Texture::load(".\\res\\art\\black.png");
+	//Texture* normalMap = 0;
 
 	return new Mesh(meshVertices, meshIndices, diffuseMap, specularMap, normalMap, 32.0f);
 }

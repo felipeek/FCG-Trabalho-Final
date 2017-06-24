@@ -60,6 +60,9 @@
     <ClCompile Include="src\Map.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="src\Player.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <None Include="shaders\BasicShader.fs" />
@@ -71,6 +74,8 @@
     <None Include="shaders\FlatShader.fs" />
     <None Include="shaders\FlatShader.vs" />
     <None Include="src\Map.h" />
+    <None Include="shaders\FixedShader.fs" />
+    <None Include="shaders\FixedShader.vs" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\Camera.h">
@@ -113,6 +118,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="src\Game.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Player.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

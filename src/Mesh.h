@@ -30,7 +30,7 @@ namespace raw
 		Mesh(const std::vector<Vertex>& vertices, const std::vector<unsigned int>& indices,
 			Texture* diffuseMap, Texture* specularMap, Texture* normalMap, float specularShineness);
 		~Mesh();
-		void render(const Shader& shader) const;
+		void render(const Shader& shader, bool useNormalMap) const;
 		Texture* getDiffuseMap() const;
 		void setDiffuseMap(Texture* diffuseMap);
 		Texture* getSpecularMap() const;
@@ -41,6 +41,8 @@ namespace raw
 		void setSpecularShineness(float specualrShineness);
 		MeshRenderMode getRenderMode() const;
 		void setRenderMode(MeshRenderMode renderMode);
+		bool isVisible() const;
+		void setVisible(bool visible);
 
 		static Texture* getDefaultDiffuseMap();
 		static Texture* getDefaultSpecularMap();
@@ -54,6 +56,7 @@ namespace raw
 		Texture* normalMap;
 		float specularShineness;
 		MeshRenderMode renderMode;
+		bool visible;
 		GLuint VAO;
 
 		static Texture* defaultDiffuseMap;
