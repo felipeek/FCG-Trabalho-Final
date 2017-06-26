@@ -46,6 +46,12 @@ void Model::setSpecularMapOfAllMeshes(Texture* specularMap)
 		meshes[i]->setSpecularMap(specularMap);
 }
 
+void Model::setNormalMapOfAllMeshes(Texture* normalMap)
+{
+	for (unsigned int i = 0; i < this->meshes.size(); ++i)
+		meshes[i]->setNormalMap(normalMap);
+}
+
 void Model::setSpecularShinenessOfAllMeshes(float specularShineness)
 {
 	for (unsigned int i = 0; i < this->meshes.size(); ++i)

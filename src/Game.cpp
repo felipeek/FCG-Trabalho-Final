@@ -7,12 +7,12 @@
 #include "StaticModels.h"
 #include "GLFW\glfw3.h"
 #include "Network.h"
+#include "StreetLamp.h"
 
 using namespace raw;
 
 // @TEMPORARY
 float x, y, z, xx, yy, zz;
-bool twoPlayers = true;
 
 Game::Game()
 {
@@ -21,13 +21,16 @@ Game::Game()
 
 Game::~Game()
 {
-
 }
 
-void Game::init()
+
+void Game::init(bool singlePlayer)
 {
+	this->singlePlayer = singlePlayer;
+
 	// Init Network
-	Network::initNetwork(this, "127.0.0.1");
+	if (!this->singlePlayer)
+		this->network = new Network(this, "192.168.0.2", 8888);
 
 	// Create Map
 	this->map = new Map(".\\res\\map\\map.png");
@@ -47,10 +50,10 @@ void Game::init()
 	this->player->getTransform().setWorldScale(glm::vec3(0.5f, 0.5f, 0.5f));
 
 	// Create Second Player
-	if (twoPlayers)
+	if (!this->singlePlayer)
 	{
 		this->secondPlayer = new Player(cubeModel);
-		this->player->getTransform().setWorldScale(glm::vec3(0.5f, 0.5f, 0.5f));
+		this->secondPlayer->getTransform().setWorldScale(glm::vec3(0.5f, 0.5f, 0.5f));
 	}
 
 	// Create Lights
@@ -92,12 +95,18 @@ void Game::render() const
 	for (unsigned int i = 0; i < this->entities.size(); ++i)
 		this->entities[i]->render(*shaderToUse, *selectedCamera, this->lights, this->useNormalMap);
 
+	for (unsigned int i = 0; i < this->streetLamps.size(); ++i)
+		this->streetLamps[i]->render(*shaderToUse, *basicShader, *selectedCamera, this->lights, this->useNormalMap);
+
 	// Avoid rendering the player when the player camera is being used to not block the camera.
 	if (this->selectedCamera != CameraType::PLAYER)
-		player->render(*shaderToUse, *selectedCamera, this->lights, this->useNormalMap);
+		this->player->render(*shaderToUse, *selectedCamera, this->lights, this->useNormalMap);
 
-	secondPlayer->render(*shaderToUse, *selectedCamera, this->lights, this->useNormalMap);
-	secondPlayer->renderGun(*shaderToUse, *selectedCamera, this->lights, this->useNormalMap);
+	if (!this->singlePlayer)
+	{
+		this->secondPlayer->render(*shaderToUse, *selectedCamera, this->lights, this->useNormalMap);
+		this->secondPlayer->renderGun(*shaderToUse, *selectedCamera, this->lights, this->useNormalMap);
+	}
 
 	// If player camera is being used, clear the depth buffer to render the gun. This way, the gun will always appear
 	// on the screen, regardless if it is behind the wall, for example.
@@ -105,17 +114,17 @@ void Game::render() const
 		glClear(GL_DEPTH_BUFFER_BIT);
 
 	// Second Pass
-	player->renderGun(*shaderToUse, *selectedCamera, this->lights, this->useNormalMap);
+	this->player->renderGun(*shaderToUse, *selectedCamera, this->lights, this->useNormalMap);
 
 	// Should only render AIM when Player Camera is being used!
 	if (this->selectedCamera == CameraType::PLAYER)
-		player->renderAim(*fixedShader);
+		this->player->renderAim(*fixedShader);
 }
-
-double lastTime = 0;
 
 void Game::update(float deltaTime)
 {
+	static const int networkUpdatesPerSecond = 10;
+	static double lastTime;
 	const Camera& playerCamera = this->player->getCamera();
 
 	if (this->boundSpotLight)
@@ -131,22 +140,28 @@ void Game::update(float deltaTime)
 	this->lookAtCamera.setPosition(lookAtNewPosition);
 
 	this->player->update();
-	this->secondPlayer->update();
 
-	double currentTime = glfwGetTime();
-
-	if (currentTime > lastTime + 0.1)
+	if (!this->singlePlayer)
 	{
-		Network::sendPlayerInformation(*this->player);
-		Network::receiveAndProcessPackets();
-		lastTime = currentTime;
+		this->secondPlayer->update();
+
+		// If two players mode, update network.
+		double currentTime = glfwGetTime();
+		if (currentTime > lastTime + 1.0f/networkUpdatesPerSecond)
+		{
+			this->network->sendPlayerInformation(*this->player);
+			this->network->receiveAndProcessPackets();
+			lastTime = currentTime;
+		}
 	}
+
 }
 
 void Game::destroy()
 {
 	// Destroy network
-	Network::destroyNetwork();
+	if (!this->singlePlayer)
+		delete this->network;
 
 	// Destroy map
 	delete this->map;
@@ -160,6 +175,10 @@ void Game::destroy()
 	// Destroy Lights
 	for (unsigned int i = 0; i < this->lights.size(); ++i)
 		delete this->lights[i];
+
+	// Destroy Street Lamps
+	// We can just clear the vector, since all street lamps were inside the lights array.
+	this->streetLamps.clear();
 
 	// Destroy Models
 	for (unsigned int i = 0; i < this->entities.size(); ++i)
@@ -188,7 +207,6 @@ void Game::processMouseChange(double xPos, double yPos)
 	static bool firstTime = true;
 	static const float cameraMouseSpeed = 0.005f;
 	
-
 	if (!firstTime)
 	{
 		double xDifference = xPos - xPosOld;
@@ -222,13 +240,19 @@ void Game::processMouseChange(double xPos, double yPos)
 void Game::processMouseClick(int button, int action)
 {
 	if (button == GLFW_MOUSE_BUTTON_LEFT && action == GLFW_PRESS)
+	{
+		if (!this->singlePlayer)
+			this->network->sendPlayerFireAnimation();
 		this->player->fire();
+	}
 }
 
-void Game::updateSecondPlayer(glm::vec4 newPosition, glm::vec4 newLookDirection)
+Player* Game::getSecondPlayer()
 {
-	this->secondPlayer->getTransform().setWorldPosition(newPosition);
-	this->secondPlayer->changeLookDirection(newLookDirection);
+	if (!this->singlePlayer)
+		return this->secondPlayer;
+
+	return 0;
 }
 
 void Game::createShaders()
@@ -258,43 +282,147 @@ void Game::createCameras()
 
 void Game::createLights()
 {
-	glm::vec4 ambientLight = glm::vec4(0.2f, 0.2f, 0.2f, 1.0f);
-	glm::vec4 diffuseLight = glm::vec4(0.5f, 0.5f, 0.5f, 1.0f);
+	glm::vec4 ambientLight = glm::vec4(0.0f, 0.0f, 0.0f, 1.0f);
+	glm::vec4 diffuseLight = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f);
 	glm::vec4 specularLight = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f);
+	//LightAttenuation attenuation = {
+	//	1.0f,		// Constant Term
+	//	0.14f,		// Linear Term
+	//	0.07f		// Quadratic Term
+	//};
+
 	LightAttenuation attenuation = {
 		1.0f,		// Constant Term
-		0.14f,		// Linear Term
-		0.07f		// Quadratic Term
+		0.22f,		// Linear Term
+		0.20f		// Quadratic Term
 	};
 
 	// POINT LIGHT
-	glm::vec4 plPosition = glm::vec4(0.0f, 1.0f, 0.0f, 1.0f);
-	PointLight* pointLight = new PointLight(plPosition, ambientLight, diffuseLight, specularLight);
-	pointLight->setAttenuation(attenuation);
+	//glm::vec4 plPosition = glm::vec4(5.6923f, 0.56f, 1.0f + 0.1f, 1.0f);
+	//PointLight* pointLight = new PointLight(plPosition, ambientLight, diffuseLight, specularLight);
+	//pointLight->setAttenuation(attenuation);
+	//this->lights.push_back(pointLight);
 
 	// SPOT LIGHT
-	glm::vec4 slPosition = glm::vec4(0, 0, 1, 1);
-	SpotLight* spotLight = new SpotLight(slPosition, ambientLight, diffuseLight, specularLight);
-	spotLight->setAttenuation(attenuation);
-	spotLight->setInnerCutOffAngle(glm::radians(12.5f));
-	spotLight->setOuterCutOffAngle(glm::radians(17.5f));
-	spotLight->setDirection(glm::vec4(0, 0, -1, 0));
-	this->boundSpotLight = spotLight;	// @TEMPORARY
+	//glm::vec4 slPosition = glm::vec4(0, 0, 1, 1);
+	//SpotLight* spotLight = new SpotLight(slPosition, ambientLight, diffuseLight, specularLight);
+	//spotLight->setAttenuation(attenuation);
+	//spotLight->setInnerCutOffAngle(glm::radians(12.5f));
+	//spotLight->setOuterCutOffAngle(glm::radians(17.5f));
+	//spotLight->setDirection(glm::vec4(0, 0, -1, 0));
+	//this->boundSpotLight = spotLight;	// @TEMPORARY
+	//this->lights.push_back(spotLight);
 
 	// DIRECTIONAL LIGHT
-	glm::vec4 dlDirection = glm::vec4(-0.2f, -1.0f, -0.3f, 0.0f);
-	DirectionalLight* directionalLight = new DirectionalLight(dlDirection, ambientLight, diffuseLight,
-		specularLight);
+	//glm::vec4 dlDirection = glm::vec4(-0.2f, -1.0f, -0.3f, 0.0f);
+	//DirectionalLight* directionalLight = new DirectionalLight(dlDirection, ambientLight, diffuseLight,
+	//	specularLight);
+	//this->lights.push_back(directionalLight);
 
-	glm::vec4 dlDirection2 = glm::vec4(-0.2f, -0.8f, -0.3f, 0.0f);
-	DirectionalLight* directionalLight2 = new DirectionalLight(dlDirection2, ambientLight, diffuseLight,
-		specularLight);
+	// CREATE ALL STREET LAMPS
+	glm::vec4 streetLampPosition = glm::vec4(5.69f, 0.56f, 1.165f, 1.0f);
+	StreetLamp* streetLamp = this->createStreetLamp(streetLampPosition, 0.0f);
+	this->lights.push_back(streetLamp);
+	this->streetLamps.push_back(streetLamp);
 
-	// VECTOR CREATION
-	//this->lights.push_back(pointLight);
-	this->lights.push_back(spotLight);
-	this->lights.push_back(directionalLight);
-	this->lights.push_back(directionalLight2);
+	streetLampPosition = glm::vec4(10.69f, 0.56f, 1.165f, 1.0f);
+	streetLamp = this->createStreetLamp(streetLampPosition, 0.0f);
+	this->lights.push_back(streetLamp);
+	this->streetLamps.push_back(streetLamp);
+
+	streetLampPosition = glm::vec4(10.838f, 0.56f, 4.3f, 1.0f);
+	streetLamp = this->createStreetLamp(streetLampPosition, -PI_F/2.0f);
+	this->lights.push_back(streetLamp);
+	this->streetLamps.push_back(streetLamp);
+
+	streetLampPosition = glm::vec4(3.842f, 0.56f, 8.157f, 1.0f);
+	streetLamp = this->createStreetLamp(streetLampPosition, -PI_F/2.0f);
+	this->lights.push_back(streetLamp);
+	this->streetLamps.push_back(streetLamp);
+
+	streetLampPosition = glm::vec4(1.164f, 0.56f, 19.1359f, 1.0f);
+	streetLamp = this->createStreetLamp(streetLampPosition, PI_F/2.0f);
+	this->lights.push_back(streetLamp);
+	this->streetLamps.push_back(streetLamp);
+
+	streetLampPosition = glm::vec4(11.686f, 0.56f, 22.84f, 1.0f);
+	streetLamp = this->createStreetLamp(streetLampPosition, PI_F);
+	this->lights.push_back(streetLamp);
+	this->streetLamps.push_back(streetLamp);
+
+	streetLampPosition = glm::vec4(18.836f, 0.56f, 12.93f, 1.0f);
+	streetLamp = this->createStreetLamp(streetLampPosition, -PI_F/2.0f);
+	this->lights.push_back(streetLamp);
+	this->streetLamps.push_back(streetLamp);
+
+	streetLampPosition = glm::vec4(7.0f, 0.56f, 22.84f, 1.0f);
+	streetLamp = this->createStreetLamp(streetLampPosition, PI_F);
+	this->lights.push_back(streetLamp);
+	this->streetLamps.push_back(streetLamp);
+
+	streetLampPosition = glm::vec4(20.766f, 0.56f, 22.84f, 1.0f);
+	streetLamp = this->createStreetLamp(streetLampPosition, PI_F);
+	this->lights.push_back(streetLamp);
+	this->streetLamps.push_back(streetLamp);
+
+	streetLampPosition = glm::vec4(16.1714f, 0.56f, 21.47f, 1.0f);
+	streetLamp = this->createStreetLamp(streetLampPosition, PI_F / 2);
+	this->lights.push_back(streetLamp);
+	this->streetLamps.push_back(streetLamp);
+
+	streetLampPosition = glm::vec4(19.405f, 0.56f, 1.8406f, 1.0f);
+	streetLamp = this->createStreetLamp(streetLampPosition, PI_F);
+	this->lights.push_back(streetLamp);
+	this->streetLamps.push_back(streetLamp);
+
+	streetLampPosition = glm::vec4(11.415f, 0.56f, 13.836f, 1.0f);
+	streetLamp = this->createStreetLamp(streetLampPosition, PI_F);
+	this->lights.push_back(streetLamp);
+	this->streetLamps.push_back(streetLamp);
+
+	streetLampPosition = glm::vec4(16.164f, 0.56f, 7.348f, 1.0f);
+	streetLamp = this->createStreetLamp(streetLampPosition, PI_F / 2.0f);
+	this->lights.push_back(streetLamp);
+	this->streetLamps.push_back(streetLamp);
+
+	streetLampPosition = glm::vec4(6.836f, 0.56f, 16.53f, 1.0f);
+	streetLamp = this->createStreetLamp(streetLampPosition, -PI_F / 2.0f);
+	this->lights.push_back(streetLamp);
+	this->streetLamps.push_back(streetLamp);
+
+	streetLampPosition = glm::vec4(22.838f, 0.56f, 18.31f, 1.0f);
+	streetLamp = this->createStreetLamp(streetLampPosition, -PI_F / 2.0f);
+	this->lights.push_back(streetLamp);
+	this->streetLamps.push_back(streetLamp);
+
+	streetLampPosition = glm::vec4(22.838f, 0.56f, 5.31f, 1.0f);
+	streetLamp = this->createStreetLamp(streetLampPosition, -PI_F / 2.0f);
+	this->lights.push_back(streetLamp);
+	this->streetLamps.push_back(streetLamp);
+
+	streetLampPosition = glm::vec4(6.836f, 0.56f, 10.48f, 1.0f);
+	streetLamp = this->createStreetLamp(streetLampPosition, -PI_F / 2.0f);
+	this->lights.push_back(streetLamp);
+	this->streetLamps.push_back(streetLamp);
+}
+
+StreetLamp* Game::createStreetLamp(const glm::vec4& position, float rotY)
+{
+	glm::vec4 ambientLight = glm::vec4(0.0f, 0.0f, 0.0f, 1.0f);
+	glm::vec4 diffuseLight = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f);
+	glm::vec4 specularLight = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f);
+
+	LightAttenuation attenuation = {
+		1.0f,		// Constant Term
+		0.35f,		// Linear Term
+		0.44f		// Quadratic Term
+	};
+
+	StreetLamp* streetLamp = new StreetLamp(position, ambientLight, diffuseLight, specularLight);
+	streetLamp->setAttenuation(attenuation);
+	streetLamp->setWorldRotation(glm::vec3(0.0f, rotY, 0.0f));
+
+	return streetLamp;
 }
 
 void Game::createEntities()
@@ -365,7 +493,7 @@ void Game::createEntities()
 // If there is a collision, instead of just returning the original position (no movement), try to return
 // the best position based on the map. (Try to slide when colliding with walls).
 // Method will only work for map where walls are parallel to X and Z axes.z
-glm::vec4 Game::getNewPositionForMovement(glm::vec4 position, glm::vec4 direction, float deltaTime)
+glm::vec4 Game::getNewPositionForMovement(const glm::vec4& position, const glm::vec4& direction, float deltaTime) const
 {
 	static const float movementSpeed = 5.0f;
 	glm::vec4 newPos = position + movementSpeed * deltaTime * direction;
@@ -460,7 +588,7 @@ void Game::processInput(bool* keyState, float deltaTime)
 	}
 
 	if (keyState[GLFW_KEY_X] && !keyState[GLFW_KEY_Q])
-		x += 0.002f;
+		x += 0.01f;
 	if (keyState[GLFW_KEY_Y] && !keyState[GLFW_KEY_Q])
 		y += 0.01f;
 	if (keyState[GLFW_KEY_Z] && !keyState[GLFW_KEY_Q])
@@ -473,7 +601,7 @@ void Game::processInput(bool* keyState, float deltaTime)
 		z -= 0.01f;
 
 	if (keyState[GLFW_KEY_1] && !keyState[GLFW_KEY_Q])
-		xx += 0.002f;
+		xx += 0.01f;
 	if (keyState[GLFW_KEY_2] && !keyState[GLFW_KEY_Q])
 		yy += 0.01f;
 	if (keyState[GLFW_KEY_3] && !keyState[GLFW_KEY_Q])

@@ -1,0 +1,3 @@
+TODO
+
+1 - criar um Model Loader (para evitar carregar varias vezes modelos iguais)

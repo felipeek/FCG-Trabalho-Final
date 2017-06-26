@@ -72,6 +72,12 @@
     <ClCompile Include="src\Network.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="StreetLamp.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\StreetLamp.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <None Include="shaders\BasicShader.fs" />
@@ -139,6 +145,12 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="src\Network.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="StreetLamp.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\StreetLamp.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

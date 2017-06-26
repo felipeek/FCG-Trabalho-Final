@@ -21,6 +21,7 @@ namespace raw
 		std::vector<Mesh*> getMeshes() const;
 		void setDiffuseMapOfAllMeshes(Texture* diffuseMap);
 		void setSpecularMapOfAllMeshes(Texture* specularMap);
+		void setNormalMapOfAllMeshes(Texture* normalMap);
 		void setSpecularShinenessOfAllMeshes(float specularShineness);
 	private:
 		void loadModel(const char* path);

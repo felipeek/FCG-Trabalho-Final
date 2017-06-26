@@ -68,7 +68,8 @@ int main()
 	initGlew();
 
 	game = new raw::Game();
-	game->init();
+
+	game->init(true);
 
 	glEnable(GL_DEPTH_TEST);
 	glLineWidth(10);
@@ -83,7 +84,8 @@ int main()
 	while (!glfwWindowShouldClose(mainWindow))
 	{
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-		glClearColor(0x7E/255.0f, 0xC0/255.0f, 0xEE/255.0f, 1.0f);
+		//glClearColor(0x7E/255.0f, 0xC0/255.0f, 0xEE/255.0f, 1.0f);
+		glClearColor(0.2f, 0.2f, 0.2f, 1.0f);
 
 		game->update(deltaTime);
 		game->render();

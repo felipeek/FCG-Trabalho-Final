@@ -32,7 +32,7 @@ glm::vec4 Transform::getWorldPosition() const
 }
 
 // Set the world position of the transform and update the Model Matrix.
-void Transform::setWorldPosition(glm::vec4& worldPosition)
+void Transform::setWorldPosition(const glm::vec4& worldPosition)
 {
 	this->worldPosition = worldPosition;
 	this->updateModelMatrix();
@@ -44,7 +44,7 @@ glm::vec3 Transform::getWorldRotation() const
 }
 
 // Set the world rotation of the transform and update the Model Matrix.
-void Transform::setWorldRotation(glm::vec3& worldRotation)
+void Transform::setWorldRotation(const glm::vec3& worldRotation)
 {
 	this->worldRotation = worldRotation;
 	this->updateModelMatrix();
@@ -56,7 +56,7 @@ glm::vec3 Transform::getWorldScale() const
 }
 
 // Set the world scale of the transform and update the Model Matrix.
-void Transform::setWorldScale(glm::vec3& worldScale)
+void Transform::setWorldScale(const glm::vec3& worldScale)
 {
 	this->worldScale = worldScale;
 	this->updateModelMatrix();

@@ -11,17 +11,19 @@ namespace raw
 	class Network
 	{
 	public:
-		static void initNetwork(Game* game, char* peerIp);
-		static void destroyNetwork();
-		static void sendPlayerInformation(const Player& player);
-		static void sendPlayerFireHit();
-		static void receiveAndProcessPackets();
+		Network(Game* game, char* peerIp, unsigned int peerPort);
+		~Network();
+		void sendPlayerInformation(const Player& player);
+		void sendPlayerFireAnimation();
+		void sendPlayerFireHit();
+		void receiveAndProcessPackets();
 	private:
-		static void processPlayerInformationPacket(char* buffer);
-		static void processPlayerFireHitPacket(char* buffer);
-		const static unsigned int peerPort;
-		static UDPSender* udpSender;
-		static UDPReceiver* udpReceiver;
-		static Game* boundGame;
+		void processPlayerInformationPacket(char* buffer);
+		void processPlayerFireAnimationPacket(char* buffer);
+		void processPlayerFireHitPacket(char* buffer);
+		unsigned int peerPort = 8888;
+		UDPSender* udpSender;
+		UDPReceiver* udpReceiver;
+		Game* boundGame;
 	};
 }

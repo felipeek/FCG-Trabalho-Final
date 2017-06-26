@@ -9,32 +9,25 @@ using namespace raw;
 #include <iostream>
 #endif
 
-const unsigned int Network::peerPort = 8888;
-UDPSender* Network::udpSender;
-UDPReceiver* Network::udpReceiver;
-Game* Network::boundGame;
-
 enum PacketType
 {
 	PLAYER_INFORMATION = 1,
-	PLAYER_FIRE_HIT = 2
+	PLAYER_FIRE_ANIMATION = 2,
+	PLAYER_FIRE_HIT = 3
 };
 
-void Network::initNetwork(Game* game, char* peerIp)
+Network::Network(Game* game, char* peerIp, unsigned int peerPort)
 {
-	Network::udpReceiver = new UDPReceiver(Network::peerPort);
-	Network::udpSender = new UDPSender(peerIp, Network::peerPort);
-	Network::boundGame = game;
+	this->peerPort = peerPort;
+	this->udpReceiver = new UDPReceiver(this->peerPort);
+	this->udpSender = new UDPSender(peerIp, this->peerPort);
+	this->boundGame = game;
 }
 
-void Network::destroyNetwork()
+Network::~Network()
 {
-	delete Network::udpReceiver;
-	delete Network::udpSender;
-
-	Network::udpReceiver = 0;
-	Network::udpSender = 0;
-	Network::boundGame = 0;
+	delete this->udpReceiver;
+	delete this->udpSender;
 }
 
 void Network::sendPlayerInformation(const Player& player)
@@ -43,18 +36,27 @@ void Network::sendPlayerInformation(const Player& player)
 	glm::vec4 playerPosition = player.getTransform().getWorldPosition();
 	glm::vec4 playerLookDirection = player.getLookDirection();
 
-	unsigned int bufferSize = sizeof(packetId) + sizeof(playerPosition) + sizeof(playerLookDirection);
-	char* buffer = (char*)malloc(bufferSize);
+	const unsigned int bufferSize = sizeof(packetId) + sizeof(playerPosition) + sizeof(playerLookDirection);
+	char buffer[bufferSize];
 	memcpy(buffer, &packetId, sizeof(packetId));
 	memcpy(buffer + sizeof(packetId), &playerPosition, sizeof(playerPosition));
 	memcpy(buffer + sizeof(packetId) + sizeof(playerPosition), &playerLookDirection, sizeof(playerLookDirection));
-	Network::udpSender->sendMessage(buffer, bufferSize);
-	free(buffer);
+	this->udpSender->sendMessage(buffer, bufferSize);
+}
+
+void Network::sendPlayerFireAnimation()
+{
+	const unsigned int packetId = PLAYER_FIRE_ANIMATION;
+
+	const unsigned int bufferSize = sizeof(packetId);
+	char buffer[bufferSize];
+	memcpy(buffer, &packetId, sizeof(packetId));
+	this->udpSender->sendMessage(buffer, bufferSize);
 }
 
 void Network::sendPlayerFireHit()
 {
-
+	return;
 }
 
 void Network::receiveAndProcessPackets()
@@ -63,17 +65,20 @@ void Network::receiveAndProcessPackets()
 	char buffer[bufferSize];
 
 	// Try to receive packet. If there was a packet, process it accordingly!
-	if (Network::udpReceiver->receiveMessage(buffer, bufferSize) > 0)
+	while (this->udpReceiver->receiveMessage(buffer, bufferSize) > 0)
 	{
 		unsigned int packetId = *(int*)buffer;
 
 		switch (packetId)
 		{
 			case PLAYER_INFORMATION:
-				Network::processPlayerInformationPacket(buffer + sizeof(packetId));
+				this->processPlayerInformationPacket(buffer + sizeof(packetId));
+				break;
+			case PLAYER_FIRE_ANIMATION:
+				this->processPlayerFireAnimationPacket(buffer + sizeof(packetId));
 				break;
 			case PLAYER_FIRE_HIT:
-				Network::processPlayerFireHitPacket(buffer + sizeof(packetId));
+				this->processPlayerFireHitPacket(buffer + sizeof(packetId));
 				break;
 		}
 	}
@@ -94,10 +99,32 @@ void Network::processPlayerInformationPacket(char* buffer)
 #endif
 
 	// Process Packet
-	Network::boundGame->updateSecondPlayer(playerPosition, playerLookDirection);
+	Player* secondPlayer = this->boundGame->getSecondPlayer();
+
+	if (secondPlayer)
+	{
+		secondPlayer->getTransform().setWorldPosition(playerPosition);
+		secondPlayer->changeLookDirection(playerLookDirection);
+	}
+}
+
+void Network::processPlayerFireAnimationPacket(char* buffer)
+{
+	Player* secondPlayer = this->boundGame->getSecondPlayer();
+
+#ifdef DEBUG
+	std::cout << "Packet Received:" << std::endl;
+	std::cout << "ID: " << PLAYER_FIRE_ANIMATION << std::endl;
+#endif
+
+	secondPlayer->fire();
 }
 
 void Network::processPlayerFireHitPacket(char* buffer)
 {
+#ifdef DEBUG
+	std::cout << "Packet Received:" << std::endl;
+	std::cout << "ID: " << PLAYER_FIRE_HIT << std::endl;
+#endif
 	return;
 }

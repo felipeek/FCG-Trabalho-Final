@@ -321,9 +321,13 @@ Mesh* Map::getMeshForBlockedTerrain(float xPos, float zPos) const
 	meshIndices.push_back(3 + 5 * 4);
 	meshIndices.push_back(2 + 5 * 4);
 
+	//Texture* diffuseMap = Texture::load(".\\res\\art\\rust_diffuse.jpg");
+	//Texture* specularMap = Texture::load(".\\res\\art\\rust_specular.jpg");
+	//Texture* normalMap = Texture::load(".\\res\\art\\rust_normal.jpg");
+
 	Texture* diffuseMap = Texture::load(".\\res\\art\\brickwall_diffuse.jpg");
 	Texture* specularMap = Texture::load(".\\res\\art\\black.png");
-	Texture* normalMap = Texture::load(".\\res\\art\\brickwall_normal2.jpg");
+	Texture* normalMap = Texture::load(".\\res\\art\\brickwall_normal.jpg");
 
 //	Texture* diffuseMap = Texture::load(".\\res\\art\\tileable_stone_wall_diffuse.jpg");
 //	Texture* specularMap = Texture::load(".\\res\\art\\tileable_stone_wall_specular.jpg");
@@ -339,22 +343,22 @@ Mesh* Map::getMeshForFreeTerrain(float xPos, float zPos) const
 	std::vector<unsigned int> meshIndices;
 
 	vertex.position = glm::vec4(xPos, 0.0f, zPos, 1.0f);
-	vertex.normal = glm::vec4(0.0f, -1.0f, 0.0f, 0.0f);
+	vertex.normal = glm::vec4(0.0f, 1.0f, 0.0f, 0.0f);
 	vertex.textureCoordinates = glm::vec2(0.0f, 0.0f);
 	meshVertices.push_back(vertex);
 
 	vertex.position = glm::vec4(xPos + this->mapXScalement, 0.0f, zPos, 1.0f);
-	vertex.normal = glm::vec4(0.0f, -1.0f, 0.0f, 0.0f);
+	vertex.normal = glm::vec4(0.0f, 1.0f, 0.0f, 0.0f);
 	vertex.textureCoordinates = glm::vec2(1.0f, 0.0f);
 	meshVertices.push_back(vertex);
 
 	vertex.position = glm::vec4(xPos, 0.0f, zPos + this->mapZScalement, 1.0f);
-	vertex.normal = glm::vec4(0.0f, -1.0f, 0.0f, 0.0f);
+	vertex.normal = glm::vec4(0.0f, 1.0f, 0.0f, 0.0f);
 	vertex.textureCoordinates = glm::vec2(0.0f, 1.0f);
 	meshVertices.push_back(vertex);
 
 	vertex.position = glm::vec4(xPos + this->mapXScalement, 0.0f, zPos + this->mapZScalement, 1.0f);
-	vertex.normal = glm::vec4(0.0f, -1.0f, 0.0f, 0.0f);
+	vertex.normal = glm::vec4(0.0f, 1.0f, 0.0f, 0.0f);
 	vertex.textureCoordinates = glm::vec2(1.0f, 1.0f);
 	meshVertices.push_back(vertex);
 
