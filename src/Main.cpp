@@ -69,7 +69,7 @@ int main()
 
 	game = new raw::Game();
 
-	game->init(true);
+	game->init(false);
 
 	glEnable(GL_DEPTH_TEST);
 	glLineWidth(10);
@@ -98,7 +98,7 @@ int main()
 		double currentFrame = glfwGetTime();
 		if ((int)currentFrame > frameNumber)
 		{
-		//	std::cout << "FPS: " << fps << std::endl;
+			std::cout << "FPS: " << fps << std::endl;
 			fps = 0;
 			frameNumber++;
 		}

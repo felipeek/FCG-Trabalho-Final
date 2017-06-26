@@ -10,7 +10,7 @@ Camera::Camera(glm::vec4 position, glm::vec4 up, glm::vec4 view)
 	this->view = view;
 	this->fov = 45.0f;
 	this->nearPlane = -0.1f;
-	this->farPlane = -100.0f;
+	this->farPlane = -1000.0f;
 	this->windowWidth = 800;
 	this->windowHeight = 600;
 	this->recalculateAngles();

@@ -19,6 +19,7 @@ namespace raw
 		~Entity();
 
 		virtual void render(const Shader& shader, const Camera& camera, const std::vector<Light*>& lights, bool useNormalMap) const;
+		virtual void render(const Shader& shader, const Camera& camera) const;
 		virtual void render(const Shader& shader) const;
 		Transform& getTransform();
 		const Transform& getTransform() const;

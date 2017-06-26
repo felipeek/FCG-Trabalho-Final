@@ -23,6 +23,10 @@ Shader::Shader(ShaderType type)
 		vertexShaderPath = basicVertexShaderPath;
 		fragmentShaderPath = basicFragmentShaderPath;
 		break;
+	case ShaderType::TEXTURE:
+		vertexShaderPath = textureVertexShaderPath;
+		fragmentShaderPath = textureFragmentShaderPath;
+		break;
 	case ShaderType::FLAT:
 		vertexShaderPath = flatVertexShaderPath;
 		fragmentShaderPath = flatFragmentShaderPath;
@@ -34,6 +38,10 @@ Shader::Shader(ShaderType type)
 	case ShaderType::PHONG:
 		vertexShaderPath = phongVertexShaderPath;
 		fragmentShaderPath = phongFragmentShaderPath;
+		break;
+	case ShaderType::SKYBOX:
+		vertexShaderPath = skyboxVertexShaderPath;
+		fragmentShaderPath = skyboxFragmentShaderPath;
 		break;
 	default:
 		vertexShaderPath = basicVertexShaderPath;

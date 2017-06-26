@@ -1,3 +1,4 @@
 TODO
 
 1 - criar um Model Loader (para evitar carregar varias vezes modelos iguais)
+2 - refactor na logica shaders/entity/mesh para enviar uniforms pros shaders. passar tudo pros shaders?

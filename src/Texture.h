@@ -24,4 +24,25 @@ namespace raw
 		int references;
 		static std::vector<Texture*> loadedTextures;
 	};
+
+	struct CubeMapTexturePath
+	{
+		char* right;
+		char* left;
+		char* top;
+		char* bottom;
+		char* back;
+		char* front;
+	};
+
+	class CubeMapTexture
+	{
+	public:
+		CubeMapTexture(const CubeMapTexturePath& texturePaths);
+		~CubeMapTexture();
+		void bind(GLenum slot) const;
+		void unbind(GLenum slot) const;
+	private:
+		GLuint textureId;
+	};
 }

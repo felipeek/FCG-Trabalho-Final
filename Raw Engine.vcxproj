@@ -145,6 +145,7 @@
     <ClCompile Include="src\Main.cpp" />
     <ClCompile Include="src\PointLight.cpp" />
     <ClCompile Include="src\Shader.cpp" />
+    <ClCompile Include="src\SkyBox.cpp" />
     <ClCompile Include="src\SpotLight.cpp" />
     <ClCompile Include="src\StaticModels.cpp" />
     <ClCompile Include="src\StreetLamp.cpp" />
@@ -166,6 +167,7 @@
     <ClInclude Include="src\MathIncludes.h" />
     <ClInclude Include="src\PointLight.h" />
     <ClInclude Include="src\Shader.h" />
+    <ClInclude Include="src\Skybox.h" />
     <ClInclude Include="src\SpotLight.h" />
     <ClInclude Include="src\StaticModels.h" />
     <ClInclude Include="src\StreetLamp.h" />
@@ -185,6 +187,8 @@
     <None Include="shaders\GouradShader.vs" />
     <None Include="shaders\PhongShader.fs" />
     <None Include="shaders\PhongShader.vs" />
+    <None Include="shaders\TextureShader.fs" />
+    <None Include="shaders\TextureShader.vs" />
     <None Include="src\Map.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

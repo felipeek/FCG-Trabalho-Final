@@ -6,12 +6,16 @@ const char fixedVertexShaderPath[] = ".\\shaders\\FixedShader.vs";
 const char fixedFragmentShaderPath[] = ".\\shaders\\FixedShader.fs";
 const char basicVertexShaderPath[] = ".\\shaders\\BasicShader.vs";
 const char basicFragmentShaderPath[] = ".\\shaders\\BasicShader.fs";
+const char textureVertexShaderPath[] = ".\\shaders\\TextureShader.vs";
+const char textureFragmentShaderPath[] = ".\\shaders\\TextureShader.fs";
 const char phongVertexShaderPath[] = ".\\shaders\\PhongShader.vs";
 const char phongFragmentShaderPath[] = ".\\shaders\\PhongShader.fs";
 const char gouradVertexShaderPath[] = ".\\shaders\\GouradShader.vs";
 const char gouradFragmentShaderPath[] = ".\\shaders\\GouradShader.fs";
 const char flatVertexShaderPath[] = ".\\shaders\\FlatShader.vs";
 const char flatFragmentShaderPath[] = ".\\shaders\\FlatShader.fs";
+const char skyboxVertexShaderPath[] = ".\\shaders\\SkyboxShader.vs";
+const char skyboxFragmentShaderPath[] = ".\\shaders\\SkyboxShader.fs";
 
 namespace raw
 {
@@ -19,11 +23,13 @@ namespace raw
 	{
 		FIXED,
 		BASIC,
+		TEXTURE,
 		FLAT,
 		GOURAD,
-		PHONG
+		PHONG,
+		SKYBOX
 	};
-
+	
 	class Shader
 	{
 	public:

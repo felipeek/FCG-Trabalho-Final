@@ -8,6 +8,8 @@
 #include "GLFW\glfw3.h"
 #include "Network.h"
 #include "StreetLamp.h"
+#include "Skybox.h"
+#include <iostream>
 
 using namespace raw;
 
@@ -30,7 +32,10 @@ void Game::init(bool singlePlayer)
 
 	// Init Network
 	if (!this->singlePlayer)
-		this->network = new Network(this, "192.168.0.2", 8888);
+		this->network = new Network(this, "186.215.50.40", 8888);
+
+	// Create sky
+	this->skybox = new Skybox();
 
 	// Create Map
 	this->map = new Map(".\\res\\map\\map.png");
@@ -43,7 +48,7 @@ void Game::init(bool singlePlayer)
 
 	// CREATE A CUBE (cube.obj)
 	Texture* diffuseMap = Texture::load(".\\res\\art\\green.png");
-	Model* cubeModel = new Model(std::vector<Mesh*>({StaticModels::getCubeMesh(diffuseMap, 0, 0, 32.0f)}));
+	Model* cubeModel = new Model(std::vector<Mesh*>({StaticModels::getCubeMesh(1.0f, diffuseMap, 0, 0, 32.0f)}));
 
 	// Create Player
 	this->player = new Player(cubeModel);
@@ -80,6 +85,9 @@ void Game::render() const
 		case ShaderType::BASIC:
 			shaderToUse = this->basicShader;
 			break;
+		case ShaderType::TEXTURE:
+			shaderToUse = this->textureShader;
+			break;
 		case ShaderType::FLAT:
 			shaderToUse = this->flatShader;
 			break;
@@ -87,10 +95,17 @@ void Game::render() const
 			shaderToUse = this->gouradShader;
 			break;
 		case ShaderType::PHONG:
+			shaderToUse = this->phongShader;
+			break;
+		case ShaderType::SKYBOX:
+			shaderToUse = this->skyboxShader;
+			break;
 		default:
 			shaderToUse = this->phongShader;
 			break;
 	}
+
+	this->skybox->render(*skyboxShader, *selectedCamera);
 
 	for (unsigned int i = 0; i < this->entities.size(); ++i)
 		this->entities[i]->render(*shaderToUse, *selectedCamera, this->lights, this->useNormalMap);
@@ -154,7 +169,11 @@ void Game::update(float deltaTime)
 			lastTime = currentTime;
 		}
 	}
+	//glm::vec4 p = this->freeCamera.getPosition();
+	//std::cout << "<" << p.x << ", " << p.y << ", " << p.z << ">" << std::endl;
 
+	//this->entities[0]->getTransform().setWorldRotation(glm::vec3(x, 0.0f, 0.0f));
+	//this->sky->getTransform().setWorldScale(glm::vec3(10.0f + x, 0.0f + y, 10.0f + z));
 }
 
 void Game::destroy()
@@ -259,9 +278,11 @@ void Game::createShaders()
 {
 	this->fixedShader = new Shader(ShaderType::FIXED);
 	this->basicShader = new Shader(ShaderType::BASIC);
+	this->textureShader = new Shader(ShaderType::TEXTURE);
 	this->phongShader = new Shader(ShaderType::PHONG);
 	this->gouradShader = new Shader(ShaderType::GOURAD);
 	this->flatShader = new Shader(ShaderType::FLAT);
+	this->skyboxShader = new Shader(ShaderType::SKYBOX);
 	this->shaderType = ShaderType::PHONG;
 }
 
@@ -666,5 +687,10 @@ void Game::processInput(bool* keyState, float deltaTime)
 	{
 		shaderType = raw::ShaderType::PHONG;
 		keyState[GLFW_KEY_P] = false;					// Force false to only compute one time.
+	}
+	if (keyState[GLFW_KEY_T])
+	{
+		shaderType = raw::ShaderType::TEXTURE;
+		keyState[GLFW_KEY_T] = false;					// Force false to only compute one time.
 	}
 }

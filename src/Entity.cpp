@@ -69,6 +69,19 @@ void Entity::render(const Shader& shader, const Camera& camera, const std::vecto
 	this->model->render(shader, useNormalMap);
 }
 
+void Entity::render(const Shader& shader, const Camera& camera) const
+{
+	shader.useProgram();
+	GLuint modelMatrixLocation = glGetUniformLocation(shader.getProgram(), "modelMatrix");
+	GLuint viewMatrixLocation = glGetUniformLocation(shader.getProgram(), "viewMatrix");
+	GLuint projectionMatrixLocation = glGetUniformLocation(shader.getProgram(), "projectionMatrix");
+	glUniformMatrix4fv(modelMatrixLocation, 1, GL_FALSE, glm::value_ptr(this->transform.getModelMatrix()));
+	glUniformMatrix4fv(viewMatrixLocation, 1, GL_FALSE, glm::value_ptr(camera.getViewMatrix()));
+	glUniformMatrix4fv(projectionMatrixLocation, 1, GL_FALSE, glm::value_ptr(camera.getProjectionMatrix()));
+
+	this->model->render(shader, false);
+}
+
 void Entity::render(const Shader& shader) const
 {
 	shader.useProgram();

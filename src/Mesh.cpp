@@ -68,7 +68,7 @@ void Mesh::render(const Shader& shader, bool useNormalMap) const
 			glUniform1i(materialUseNormalMapLocation, false);
 		}
 	}
-	else if (shader.getType() == ShaderType::FIXED)
+	else if (shader.getType() == ShaderType::FIXED || shader.getType() == ShaderType::TEXTURE)
 	{
 		this->getDiffuseMap()->bind(GL_TEXTURE0);
 		GLuint fixedTextureLocation = glGetUniformLocation(shader.getProgram(), "fixedTexture");

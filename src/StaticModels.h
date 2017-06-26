@@ -8,6 +8,6 @@ namespace raw
 	class StaticModels
 	{
 	public:
-		static Mesh* getCubeMesh(Texture* diffuseMap, Texture* specularMap, Texture* normalMap, float specularShineness);
+		static Mesh* getCubeMesh(float size, Texture* diffuseMap, Texture* specularMap, Texture* normalMap, float specularShineness);
 	};
 }

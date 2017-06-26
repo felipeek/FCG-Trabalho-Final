@@ -12,6 +12,7 @@ namespace raw
 	class Map;
 	class StreetLamp;
 	class Network;
+	class Skybox;
 
 	enum class CameraType
 	{
@@ -49,15 +50,18 @@ namespace raw
 		ShaderType shaderType;
 		Shader* fixedShader;
 		Shader* basicShader;
+		Shader* textureShader;
 		Shader* flatShader;
 		Shader* gouradShader;
 		Shader* phongShader;
+		Shader* skyboxShader;
 
 		// Cameras
 		Camera freeCamera;
 		Camera lookAtCamera;
 		CameraType selectedCamera;
 
+		Skybox* skybox;
 		Player* player;
 		Player* secondPlayer;
 		Map* map;

@@ -72,10 +72,10 @@
     <ClCompile Include="src\Network.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="StreetLamp.cpp">
+    <ClCompile Include="src\StreetLamp.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="src\StreetLamp.cpp">
+    <ClCompile Include="src\SkyBox.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
@@ -91,6 +91,8 @@
     <None Include="src\Map.h" />
     <None Include="shaders\FixedShader.fs" />
     <None Include="shaders\FixedShader.vs" />
+    <None Include="shaders\TextureShader.fs" />
+    <None Include="shaders\TextureShader.vs" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\Camera.h">
@@ -147,10 +149,10 @@
     <ClInclude Include="src\Network.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="StreetLamp.h">
+    <ClInclude Include="src\StreetLamp.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="src\StreetLamp.h">
+    <ClInclude Include="src\Skybox.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
