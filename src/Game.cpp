@@ -167,12 +167,8 @@ void Game::update(float deltaTime)
 			lastTime = currentTime;
 		}
 	}
-	//glm::vec4 p = this->freeCamera.getPosition();
-	//std::cout << "<" << p.x << ", " << p.y << ", " << p.z << ">" << std::endl;
-	//
-	//glm::vec4 p = this->player->getTransform().getWorldPosition();
-	//p.y = y;
-	//this->player->getTransform().setWorldPosition(p);
+	
+	//std::cout << "Second Player HP: " << this->secondPlayer->getHp() << std::endl;
 }
 
 void Game::destroy()
@@ -204,6 +200,11 @@ void Game::destroy()
 		delete this->entities[i]->getModel();	// Delete Model
 		delete this->entities[i];				// Delete Entity
 	}
+
+	// Destroy players
+	delete this->player;
+	if (!this->singlePlayer)
+		delete this->secondPlayer;
 
 	this->map = 0;
 	this->basicShader = 0;
@@ -262,7 +263,44 @@ void Game::processMouseClick(int button, int action)
 		if (!this->singlePlayer)
 			this->network->sendPlayerFireAnimation();
 		this->player->fire();
-		std::cout << this->player->isViewRayCollidingWith(this->secondPlayer) << std::endl;
+
+		// @TODO: send fire animation along with collision info to second player!
+		if (!this->singlePlayer)
+		{
+			PlayerCollision collision = this->player->isViewRayCollidingWith(this->secondPlayer);
+			this->damagePlayer(this->secondPlayer, collision);
+		}
+	}
+}
+
+void Game::damagePlayer(Player* player, PlayerCollision fireCollision)
+{
+	switch (fireCollision)
+	{
+	case PlayerCollision::HEAD:
+		this->secondPlayer->removeHp(60);
+		break;
+	case PlayerCollision::TORSO:
+		this->secondPlayer->removeHp(30);
+		break;
+	case PlayerCollision::UPPERRIGHTARM:
+	case PlayerCollision::LOWERRIGHTARM:
+	case PlayerCollision::UPPERLEFTARM:
+	case PlayerCollision::LOWERLEFTARM:
+	case PlayerCollision::RIGHTHAND:
+	case PlayerCollision::LEFTHAND:
+		this->secondPlayer->removeHp(16);
+		break;
+	case PlayerCollision::RIGHTTHIGH:
+	case PlayerCollision::LEFTTHIGH:
+	case PlayerCollision::RIGHTSHIN:
+	case PlayerCollision::LEFTSHIN:
+		this->secondPlayer->removeHp(16);
+		break;
+	case PlayerCollision::RIGHTFOOT:
+	case PlayerCollision::LEFTFOOT:
+		this->secondPlayer->removeHp(7);
+		break;
 	}
 }
 

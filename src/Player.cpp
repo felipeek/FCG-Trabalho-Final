@@ -22,7 +22,8 @@ extern int windowHeight;
 
 Player::Player(Model* model) : Entity(model)
 {
-	glm::vec4 initialPosition = glm::vec4(1.2f, 0.0f, 1.2f, 1.0f);
+	this->hp = initialHp;
+	glm::vec4 initialPosition = glm::vec4(1.7f, 0.0f, 1.7f, 1.0f);
 	this->getTransform().setWorldPosition(initialPosition);
 
 	this->initCamera();
@@ -34,7 +35,8 @@ Player::Player(Model* model) : Entity(model)
 
 Player::Player(Model* model, Transform& transform) : Entity(model, transform)
 {
-	glm::vec4 initialPosition = glm::vec4(1.2f, 0.0f, 1.2f, 1.0f);
+	this->hp = initialHp;
+	glm::vec4 initialPosition = glm::vec4(1.7f, 0.0f, 1.7f, 1.0f);
 	this->getTransform().setWorldPosition(initialPosition);
 
 	this->initCamera();
@@ -46,13 +48,36 @@ Player::Player(Model* model, Transform& transform) : Entity(model, transform)
 
 Player::~Player()
 {
+	delete this->boundingBoxEntity;
+	delete this->boundingBoxModel;
+	for (unsigned int i = 0; i < this->boundingBoxInModelCoordinates.size(); ++i)
+		free(this->boundingBoxInModelCoordinates[i].vertices);
+	for (unsigned int i = 0; i < this->boundingBoxInModelCoordinates.size(); ++i)
+		free(this->boundingBoxInWorldCoordinates[i].vertices);
 
+	delete this->gun->getModel();
+	free(this->gun);
+	
+	delete this->aim->getModel();
+	delete this->aim;
+
+	delete this->firstPersonGun->getModel();
+	delete this->firstPersonGun;
+
+	delete this->firstPersonGunFiring->getModel();
+	delete this->firstPersonGunFiring;
 }
 
 void Player::initBoundingBox()
 {
 	this->boundingBoxModel = new Model(".\\res\\art\\carinhaloko\\carinhaloko_bb.obj");
 	std::vector<Mesh*> boundingBoxMeshes = this->boundingBoxModel->getMeshes();
+	this->boundingBoxEntity = new Entity(this->boundingBoxModel);
+	this->boundingBoxEntity->getTransform().setWorldPosition(this->getTransform().getWorldPosition());
+	this->boundingBoxEntity->getTransform().setWorldRotation(this->getTransform().getWorldRotation());
+	this->boundingBoxEntity->getTransform().setWorldScale(this->getTransform().getWorldScale());
+	for (unsigned int i = 0; i < this->boundingBoxEntity->getModel()->getMeshes().size(); ++i)
+		this->boundingBoxEntity->getModel()->getMeshes()[i]->setRenderMode(MeshRenderMode::LINES);
 
 	for (unsigned int i = 0; i < boundingBoxMeshes.size(); ++i)
 	{
@@ -139,70 +164,6 @@ const Camera& Player::getCamera() const
 void Player::render(const Shader& shader, const Camera& camera, const std::vector<Light*>& lights, bool useNormalMap) const
 {
 	Entity::render(shader, camera, lights, useNormalMap);
-
-	//vec3 viewRayVertices[8];
-	//
-	//glm::vec4 rayPosition = this->camera.getPosition();
-	//glm::vec4 rayDirection = glm::normalize(this->camera.getViewVector());
-	//float epsilon = 0.0001f;
-	//float rayLength = 30.0f;
-	//
-	//glm::vec4 xAxis = glm::normalize(this->camera.getXAxis());
-	//glm::vec4 yAxis = glm::normalize(this->camera.getYAxis());
-	//
-	//std::vector<Vertex> prismVertices;
-	//
-	//Vertex v;
-	//
-	//v.position = rayPosition + (0.0f * rayDirection - epsilon * xAxis - epsilon * yAxis);
-	//prismVertices.push_back(v);
-	//v.position = rayPosition + (0.0f * rayDirection - epsilon * xAxis + epsilon * yAxis);
-	//prismVertices.push_back(v);
-	//v.position = rayPosition + (0.0f * rayDirection + epsilon * xAxis - epsilon * yAxis);
-	//prismVertices.push_back(v);
-	//v.position = rayPosition + (0.0f * rayDirection + epsilon * xAxis + epsilon * yAxis);
-	//prismVertices.push_back(v);
-	//v.position = rayPosition + (rayLength * rayDirection - epsilon * xAxis - epsilon * yAxis);
-	//prismVertices.push_back(v);
-	//v.position = rayPosition + (rayLength * rayDirection - epsilon * xAxis + epsilon * yAxis);
-	//prismVertices.push_back(v);
-	//v.position = rayPosition + (rayLength * rayDirection + epsilon * xAxis - epsilon * yAxis);
-	//prismVertices.push_back(v);
-	//v.position = rayPosition + (rayLength * rayDirection + epsilon * xAxis + epsilon * yAxis);
-	//prismVertices.push_back(v);
-	//
-	//std::vector<unsigned int> indices;
-	//indices.push_back(0);
-	//indices.push_back(1);
-	//indices.push_back(2);
-	//indices.push_back(1);
-	//indices.push_back(2);
-	//indices.push_back(3);
-	//indices.push_back(2);
-	//indices.push_back(3);
-	//indices.push_back(4);
-	//indices.push_back(3);
-	//indices.push_back(4);
-	//indices.push_back(5);
-	//indices.push_back(4);
-	//indices.push_back(5);
-	//indices.push_back(6);
-	//indices.push_back(5);
-	//indices.push_back(6);
-	//indices.push_back(7);
-	//indices.push_back(6);
-	//indices.push_back(7);
-	//indices.push_back(0);
-	//indices.push_back(7);
-	//indices.push_back(0);
-	//indices.push_back(1);
-	//
-	//Mesh* m = new Mesh(prismVertices, indices, 0, 0, 0, 32.0f);
-	//
-	//Model* testModel = new Model(std::vector<Mesh*>({ m }));
-	//Entity* testEntity = new Entity(testModel);
-	//
-	//testEntity->render(shader, camera, lights, false);
 }
 
 void Player::renderGun(const Shader& shader, const Camera& camera, const std::vector<Light*>& lights, bool useNormalMap) const
@@ -262,6 +223,11 @@ void Player::update()
 		if (currentTime > this->fireTime + fireAnimationTime)
 			this->setIsFireAnimationOn(false);
 	}
+
+	// Refresh bouding box entity
+	this->boundingBoxEntity->getTransform().setWorldPosition(this->getTransform().getWorldPosition());
+	this->boundingBoxEntity->getTransform().setWorldRotation(this->getTransform().getWorldRotation());
+	this->boundingBoxEntity->getTransform().setWorldScale(this->getTransform().getWorldScale());
 }
 
 void Player::fire()
@@ -299,7 +265,7 @@ void Player::setIsFireAnimationOn(bool isFireAnimationOn)
 	this->gun->getModel()->getMeshes()[5]->setVisible(isFireAnimationOn);
 }
 
-bool Player::isViewRayCollidingWith(Player* player) const
+PlayerCollision Player::isViewRayCollidingWith(Player* player) const
 {
 	std::vector<BoundingShape>& playerBoundingBox = player->getBoundingBoxInWorldCoordinates();
 
@@ -339,11 +305,12 @@ bool Player::isViewRayCollidingWith(Player* player) const
 	viewRayBoundingShape.vertices = viewRayVertices;
 	viewRayBoundingShape.num_vertices = 8;
 
+	// @TODO: check which part is closer to the fire to avoid bugs!!
 	for (unsigned int i = 0; i < playerBoundingBox.size(); ++i)
 		if (gjk_collides(&playerBoundingBox[i], &viewRayBoundingShape))
-			return true;
+			return this->getCollisionBodyPart(i);
 
-	return false;
+	return PlayerCollision::NONE;
 }
 
 std::vector<BoundingShape>& Player::getBoundingBoxInModelCoordinates()
@@ -358,11 +325,53 @@ std::vector<BoundingShape>& Player::getBoundingBoxInWorldCoordinates()
 
 	for (unsigned int i = 0; i < this->boundingBoxInModelCoordinates.size(); ++i)
 	{
-		m = glm::transpose(this->getTransform().getModelMatrix());
+		m = glm::transpose(this->boundingBoxEntity->getTransform().getModelMatrix());
 		memcpy(modelMatrix.data, glm::value_ptr(m), 16 * sizeof(float));
 
 		transform_shape(&this->boundingBoxInModelCoordinates[i], &this->boundingBoxInWorldCoordinates[i], modelMatrix);
 	}
 
 	return this->boundingBoxInWorldCoordinates;
+}
+
+PlayerCollision Player::getCollisionBodyPart(unsigned int boundingBoxVectorIndex) const
+{
+	// HARDCODED!
+	switch (boundingBoxVectorIndex)
+	{
+	case 0: return PlayerCollision::TORSO;
+	case 1: return PlayerCollision::HEAD;
+	case 2: return PlayerCollision::RIGHTTHIGH;
+	case 3: return PlayerCollision::LEFTTHIGH;
+	case 4: return PlayerCollision::RIGHTSHIN;
+	case 5: return PlayerCollision::LEFTSHIN;
+	case 6: return PlayerCollision::LEFTFOOT;
+	case 7: return PlayerCollision::RIGHTFOOT;
+	case 8: return PlayerCollision::UPPERLEFTARM;
+	case 9: return PlayerCollision::LOWERLEFTARM;
+	case 10: return PlayerCollision::UPPERRIGHTARM;
+	case 11: return PlayerCollision::LOWERRIGHTARM;
+	case 12: return PlayerCollision::RIGHTHAND;
+	case 13: return PlayerCollision::LEFTHAND;
+	}
+
+	return PlayerCollision::NONE;
+}
+
+int Player::getHp() const
+{
+	return this->hp;
+}
+
+void Player::setHp(int hp)
+{
+	this->hp = hp;
+}
+
+void Player::removeHp(int damage)
+{
+	this->hp -= damage;
+
+	if (this->hp < 0)
+		this->hp = 0;
 }

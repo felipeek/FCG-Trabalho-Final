@@ -43,6 +43,7 @@ namespace raw
 			float movementSpeed) const;
 		const Camera* getSelectedCamera() const;
 		StreetLamp* createStreetLamp(const glm::vec4& position, float rotY);
+		void damagePlayer(Player* player, PlayerCollision fireCollision);
 
 		// Network
 		Network* network;
