@@ -268,6 +268,11 @@ glm::vec4 Mesh::getTangentVector(glm::vec2 diffUV1, glm::vec2 diffUV2, glm::vec4
 	return tangentVector;
 }
 
+const std::vector<Vertex>& Mesh::getVertices() const
+{
+	return this->vertices;
+}
+
 // Quad: A quad is a special type of Mesh which its vertices are defined as a simple square.
 // Useful to render 2D entities.
 Quad::Quad() : Mesh(Quad::quadVertices, Quad::quadIndices, 0, 0, 0, 128.0f)

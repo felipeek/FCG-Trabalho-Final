@@ -39,7 +39,8 @@ namespace raw
 		void createCameras();
 		void createLights();
 		void createEntities();
-		glm::vec4 getNewPositionForMovement(const glm::vec4& position, const glm::vec4& direction, float deltaTime) const;
+		glm::vec4 getNewPositionForMovement(const glm::vec4& position, const glm::vec4& direction, float deltaTime,
+			float movementSpeed) const;
 		const Camera* getSelectedCamera() const;
 		StreetLamp* createStreetLamp(const glm::vec4& position, float rotY);
 

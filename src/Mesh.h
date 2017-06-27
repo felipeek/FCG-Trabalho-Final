@@ -43,6 +43,7 @@ namespace raw
 		void setRenderMode(MeshRenderMode renderMode);
 		bool isVisible() const;
 		void setVisible(bool visible);
+		const std::vector<Vertex>& getVertices() const;
 
 		static Texture* getDefaultDiffuseMap();
 		static Texture* getDefaultSpecularMap();

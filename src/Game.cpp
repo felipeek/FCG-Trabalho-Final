@@ -46,19 +46,16 @@ void Game::init(bool singlePlayer)
 	// Create Cameras
 	this->createCameras();
 
-	// CREATE A CUBE (cube.obj)
-	Texture* diffuseMap = Texture::load(".\\res\\art\\green.png");
-	Model* cubeModel = new Model(std::vector<Mesh*>({StaticModels::getCubeMesh(1.0f, diffuseMap, 0, 0, 32.0f)}));
-
 	// Create Player
-	this->player = new Player(cubeModel);
-	this->player->getTransform().setWorldScale(glm::vec3(0.5f, 0.5f, 0.5f));
+	Model* playerModel = new Model(".\\res\\art\\carinhaloko\\carinhaloko_stance.obj");
+	this->player = new Player(playerModel);
+	this->player->getTransform().setWorldScale(glm::vec3(0.12f, 0.12f, 0.12f));
 
 	// Create Second Player
 	if (!this->singlePlayer)
 	{
-		this->secondPlayer = new Player(cubeModel);
-		this->secondPlayer->getTransform().setWorldScale(glm::vec3(0.5f, 0.5f, 0.5f));
+		this->secondPlayer = new Player(playerModel);
+		this->secondPlayer->getTransform().setWorldScale(glm::vec3(0.12f, 0.12f, 0.12f));
 	}
 
 	// Create Lights
@@ -104,7 +101,7 @@ void Game::render() const
 			shaderToUse = this->phongShader;
 			break;
 	}
-
+	
 	this->skybox->render(*skyboxShader, *selectedCamera);
 
 	for (unsigned int i = 0; i < this->entities.size(); ++i)
@@ -115,7 +112,10 @@ void Game::render() const
 
 	// Avoid rendering the player when the player camera is being used to not block the camera.
 	if (this->selectedCamera != CameraType::PLAYER)
+	{
 		this->player->render(*shaderToUse, *selectedCamera, this->lights, this->useNormalMap);
+		this->player->renderGun(*shaderToUse, *selectedCamera, this->lights, this->useNormalMap);
+	}
 
 	if (!this->singlePlayer)
 	{
@@ -129,8 +129,6 @@ void Game::render() const
 		glClear(GL_DEPTH_BUFFER_BIT);
 
 	// Second Pass
-	this->player->renderGun(*shaderToUse, *selectedCamera, this->lights, this->useNormalMap);
-
 	// Should only render AIM when Player Camera is being used!
 	if (this->selectedCamera == CameraType::PLAYER)
 		this->player->renderAim(*fixedShader);
@@ -171,9 +169,10 @@ void Game::update(float deltaTime)
 	}
 	//glm::vec4 p = this->freeCamera.getPosition();
 	//std::cout << "<" << p.x << ", " << p.y << ", " << p.z << ">" << std::endl;
-
-	//this->entities[0]->getTransform().setWorldRotation(glm::vec3(x, 0.0f, 0.0f));
-	//this->sky->getTransform().setWorldScale(glm::vec3(10.0f + x, 0.0f + y, 10.0f + z));
+	//
+	//glm::vec4 p = this->player->getTransform().getWorldPosition();
+	//p.y = y;
+	//this->player->getTransform().setWorldPosition(p);
 }
 
 void Game::destroy()
@@ -224,7 +223,7 @@ void Game::processMouseChange(double xPos, double yPos)
 {
 	static double xPosOld, yPosOld;
 	static bool firstTime = true;
-	static const float cameraMouseSpeed = 0.005f;
+	static const float cameraMouseSpeed = 0.00033f;
 	
 	if (!firstTime)
 	{
@@ -263,6 +262,7 @@ void Game::processMouseClick(int button, int action)
 		if (!this->singlePlayer)
 			this->network->sendPlayerFireAnimation();
 		this->player->fire();
+		std::cout << this->player->isViewRayCollidingWith(this->secondPlayer) << std::endl;
 	}
 }
 
@@ -335,10 +335,13 @@ void Game::createLights()
 	//this->lights.push_back(spotLight);
 
 	// DIRECTIONAL LIGHT
-	//glm::vec4 dlDirection = glm::vec4(-0.2f, -1.0f, -0.3f, 0.0f);
-	//DirectionalLight* directionalLight = new DirectionalLight(dlDirection, ambientLight, diffuseLight,
-	//	specularLight);
-	//this->lights.push_back(directionalLight);
+	glm::vec4 dlDirection = glm::vec4(-0.2f, -1.0f, -0.3f, 0.0f);
+	glm::vec4 dAmbientLight = glm::vec4(0.05f, 0.05f, 0.05f, 1.0f);
+	glm::vec4 dDiffuseLight = glm::vec4(0.1f, 0.1f, 0.1f, 1.0f);
+	glm::vec4 dSpecularLight = glm::vec4(0.0f, 0.0f, 0.0f, 1.0f);
+	DirectionalLight* directionalLight = new DirectionalLight(dlDirection, dAmbientLight, dDiffuseLight,
+		dSpecularLight);
+	this->lights.push_back(directionalLight);
 
 	// CREATE ALL STREET LAMPS
 	glm::vec4 streetLampPosition = glm::vec4(5.69f, 0.56f, 1.165f, 1.0f);
@@ -461,7 +464,7 @@ void Game::createEntities()
 	//Entity* complexEntity = new Entity(complexModel);
 	//complexEntity->getTransform().setWorldPosition(glm::vec4(10.0f, 2.0f, 10.0f, 1.0f));
 	//complexEntity->getTransform().setWorldScale(glm::vec3(0.05f, 0.05f, 0.05f));
-	
+
 	//// CREATE BUNNY MODEL (bunny.obj)
 	//Texture* bunnyDiffuseMap = Texture::load(".\\res\\art\\blue2.png");
 	//Texture* bunnySpecularMap = Texture::load(".\\res\\art\\specBunny.png");
@@ -499,9 +502,35 @@ void Game::createEntities()
 	Model* mapModel = this->map->generateMapModel();
 	Entity* mapEntity = new Entity(mapModel);
 
+	Model* woodBilletModel = new Model(".\\res\\art\\woodbillet\\simple_wood.obj");
+
+	woodBilletModel->getMeshes()[0]->setVisible(false);	// hide plane
+	woodBilletModel->setSpecularMapOfAllMeshes(Texture::load(".\\res\\art\\black.png"));
+	// fill textures
+	for (int i = 1; i < 19; i++)
+		if (i % 2)
+		{
+			woodBilletModel->getMeshes()[i]->setDiffuseMap(Texture::load(".\\res\\art\\woodbillet\\BarkDecidious0194_1_S.jpg"));
+			//woodBilletModel->getMeshes()[i]->setDiffuseMap(Texture::load(".\\res\\art\\w_d.jpg"));
+			//woodBilletModel->getMeshes()[i]->setSpecularMap(Texture::load(".\\res\\art\\w_s.jpg"));
+			// normal map n funciona provavelmente pq modelo n tem vetores tangent
+			//woodBilletModel->getMeshes()[i]->setNormalMap(Texture::load(".\\res\\art\\w_n.jpg"));
+		}
+		else
+			woodBilletModel->getMeshes()[i]->setDiffuseMap(Texture::load(".\\res\\art\\woodbillet\\wood2.png"));
+
+	Entity* woodBilletEntity = new Entity(woodBilletModel);
+	woodBilletEntity->getTransform().setWorldPosition(glm::vec4(5.0114f, 0.05f, 1.39f, 1.0f));
+	woodBilletEntity->getTransform().setWorldScale(glm::vec3(0.05f, 0.05f, 0.05f));
+
+	//complexModel->getMeshes()[0]->setDiffuseMap(Texture::load(".\\res\\art\\tree\\bark.jpg"));
+	//complexModel->getMeshes()[0]->setSpecularMap(Texture::load(".\\res\\art\\black.png"));
+	//complexModel->getMeshes()[1]->setDiffuseMap(Texture::load(".\\res\\art\\tree\\branch.png"));
+	//complexModel->getMeshes()[1]->setSpecularMap(Texture::load(".\\res\\art\\black.png"));
+
 	// VECTOR CREATION
 	//this->entities.push_back(cubeEntity);
-	//this->entities.push_back(complexEntity);
+	this->entities.push_back(woodBilletEntity);
 	//this->entities.push_back(bunnyEntity);
 	//this->entities.push_back(arvoreEntity);
 	//this->entities.push_back(sphereEntity);
@@ -514,9 +543,9 @@ void Game::createEntities()
 // If there is a collision, instead of just returning the original position (no movement), try to return
 // the best position based on the map. (Try to slide when colliding with walls).
 // Method will only work for map where walls are parallel to X and Z axes.z
-glm::vec4 Game::getNewPositionForMovement(const glm::vec4& position, const glm::vec4& direction, float deltaTime) const
+glm::vec4 Game::getNewPositionForMovement(const glm::vec4& position, const glm::vec4& direction,
+	float deltaTime, float movementSpeed) const
 {
-	static const float movementSpeed = 5.0f;
 	glm::vec4 newPos = position + movementSpeed * deltaTime * direction;
 	newPos.y = position.y;
 
@@ -582,6 +611,8 @@ void Game::processInput(bool* keyState, float deltaTime)
 	{
 		if (this->player)
 		{
+			const static float movementSpeed = 3.5f;
+			const static float movementSpeedWithShift = 1.5f;
 			glm::vec4 movementDirection = glm::vec4(0.0f, 0.0f, 0.0f, 0.0f);
 			glm::vec4 lookDirection = this->player->getLookDirection();
 			glm::vec4 perpendicularDirection = this->player->getPerpendicularDirection();
@@ -603,23 +634,29 @@ void Game::processInput(bool* keyState, float deltaTime)
 			{
 				glm::vec4 playerPos = this->player->getTransform().getWorldPosition();
 				movementDirection = glm::normalize(movementDirection);
-				this->player->getTransform().setWorldPosition(this->getNewPositionForMovement(playerPos, movementDirection, deltaTime));
+				this->player->getTransform().setWorldPosition(
+					this->getNewPositionForMovement(playerPos, movementDirection, deltaTime, movementSpeed));
 			}
 		}
 	}
 
+	float mod = 1;
+
+	if (keyState[GLFW_KEY_R])
+		mod = 0.1f;
+
 	if (keyState[GLFW_KEY_X] && !keyState[GLFW_KEY_Q])
-		x += 0.01f;
+		x += mod * 0.01f;
 	if (keyState[GLFW_KEY_Y] && !keyState[GLFW_KEY_Q])
-		y += 0.01f;
+		y += mod * 0.01f;
 	if (keyState[GLFW_KEY_Z] && !keyState[GLFW_KEY_Q])
-		z += 0.01f;
+		z += mod * 0.01f;
 	if (keyState[GLFW_KEY_X] && keyState[GLFW_KEY_Q])
-		x -= 0.01f;
+		x -= mod * 0.01f;
 	if (keyState[GLFW_KEY_Y] && keyState[GLFW_KEY_Q])
-		y -= 0.01f;
+		y -= mod * 0.01f;
 	if (keyState[GLFW_KEY_Z] && keyState[GLFW_KEY_Q])
-		z -= 0.01f;
+		z -= mod * 0.01f;
 
 	if (keyState[GLFW_KEY_1] && !keyState[GLFW_KEY_Q])
 		xx += 0.01f;
@@ -638,19 +675,6 @@ void Game::processInput(bool* keyState, float deltaTime)
 	{
 		this->useNormalMap = !this->useNormalMap;
 		keyState[GLFW_KEY_N] = false;					// Force false to only compute one time.
-	}
-
-	if (keyState[GLFW_KEY_P])
-	{
-		//char buffer[2048];
-		//int size = udpReceiver->receiveMessage(buffer, 2048);
-		//if (size > 0)
-		//{
-		//	buffer[size] = 0;
-		//	std::cout << "BUFFER: " << buffer << std::endl;
-		//	//udpServer->sendMessage("hello");
-		//	keyState[GLFW_KEY_P] = false;					// Force false to only compute one time.
-		//}
 	}
 
 	if (keyState[GLFW_KEY_C])

@@ -39,9 +39,9 @@ GLFWwindow* initGlfw()
 {
 	glfwInit();
 	glfwWindowHint(GLFW_RESIZABLE, GLFW_FALSE);
-	glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
+	glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_ANY_PROFILE);
 	glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
-	glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
+	glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 1);
 	GLFWwindow* window = glfwCreateWindow(windowWidth, windowHeight, WINDOW_TITLE, 0, 0);
 	glfwMakeContextCurrent(window);
 	glfwSetKeyCallback(window, glfwKeyCallback);
@@ -74,9 +74,6 @@ int main()
 	glEnable(GL_DEPTH_TEST);
 	glLineWidth(10);
 
-	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-	glEnable(GL_BLEND);
-
 	double lastFrame = glfwGetTime();
 	int frameNumber = (int)lastFrame;
 	unsigned int fps = 0;
@@ -84,8 +81,8 @@ int main()
 	while (!glfwWindowShouldClose(mainWindow))
 	{
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-		//glClearColor(0x7E/255.0f, 0xC0/255.0f, 0xEE/255.0f, 1.0f);
-		glClearColor(0.2f, 0.2f, 0.2f, 1.0f);
+		glClearColor(0x7E/255.0f, 0xC0/255.0f, 0xEE/255.0f, 1.0f);
+		//glClearColor(1.0f, 0.0f, 1.0f, 1.0f);
 
 		game->update(deltaTime);
 		game->render();
