@@ -50,6 +50,41 @@ Model* Map::generateMapModel() const
 	return new Model(mapMeshes);
 }
 
+std::vector<MapWallDescriptor> Map::generateMapWallDescriptors() const
+{
+	std::vector<MapWallDescriptor> mapWallDescriptors;
+	std::vector<MapWallDescriptor> auxiliar;
+
+	for (int i = 0; i < this->mapHeight; ++i)
+		for (int j = 0; j < this->mapWidth; ++j)
+		{
+			TerrainType terrainType = this->getTerrainType(glm::vec4(this->mapXScalement * j, 0.0f,
+				this->mapZScalement * i, 1.0f));
+
+			switch (terrainType)
+			{
+			case TerrainType::BLOCKED:
+				auxiliar = this->getMapWallDescriptorsForBlockedTerrain(this->mapXScalement * j,
+					this->mapZScalement * i);
+				// Append Vector
+				mapWallDescriptors.insert(mapWallDescriptors.end(), auxiliar.begin(), auxiliar.end());
+				break;
+			case TerrainType::FREE:
+				auxiliar = this->getMapWallDescriptorsForFreeTerrain(this->mapXScalement * j,
+					this->mapZScalement * i);
+				// Append Vector
+				mapWallDescriptors.insert(mapWallDescriptors.end(), auxiliar.begin(), auxiliar.end());
+				break;
+			case TerrainType::OUT:
+			default:
+				throw "Error generating Map Wall Descriptor: Out of Bounds";
+				break;
+			}
+		}
+
+	return mapWallDescriptors;
+}
+
 TerrainType Map::getTerrainType(const glm::vec4& position) const
 {
 	glm::vec4 pixelColor;
@@ -376,4 +411,83 @@ Mesh* Map::getMeshForFreeTerrain(float xPos, float zPos) const
 	//Texture* normalMap = 0;
 
 	return new Mesh(meshVertices, meshIndices, diffuseMap, specularMap, normalMap, 32.0f);
+}
+
+std::vector<MapWallDescriptor> Map::getMapWallDescriptorsForBlockedTerrain(float xPos, float zPos) const
+{
+	MapWallDescriptor mapWallDescriptor;
+	std::vector<MapWallDescriptor> mapWallDescriptors;
+
+	// FLOOR
+	mapWallDescriptor.centerPosition = glm::vec4(xPos + (this->mapXScalement / 2.0f),
+		0.0f, zPos + (this->mapZScalement / 2.0f), 1.0f);
+	mapWallDescriptor.normalVector = glm::vec4(0.0f, -1.0f, 0.0f, 0.0f);
+	mapWallDescriptor.xLength = this->mapXScalement;
+	mapWallDescriptor.yLength = 0.0f;
+	mapWallDescriptor.zLength = this->mapZScalement;
+	mapWallDescriptors.push_back(mapWallDescriptor);
+
+	// TOP
+	mapWallDescriptor.centerPosition = glm::vec4(xPos + (this->mapXScalement / 2.0f),
+		this->mapYScalement, zPos + (this->mapZScalement / 2.0f), 1.0f);
+	mapWallDescriptor.normalVector = glm::vec4(0.0f, 1.0f, 0.0f, 0.0f);
+	mapWallDescriptor.xLength = this->mapXScalement;
+	mapWallDescriptor.yLength = 0.0f;
+	mapWallDescriptor.zLength = this->mapZScalement;
+	mapWallDescriptors.push_back(mapWallDescriptor);
+
+	// LEFT
+	mapWallDescriptor.centerPosition = glm::vec4(xPos,
+		this->mapYScalement / 2.0f, zPos + (this->mapZScalement / 2.0f), 1.0f);
+	mapWallDescriptor.normalVector = glm::vec4(-1.0f, 0.0f, 0.0f, 0.0f);
+	mapWallDescriptor.xLength = 0.0f;
+	mapWallDescriptor.yLength = this->mapYScalement;
+	mapWallDescriptor.zLength = this->mapZScalement;
+	mapWallDescriptors.push_back(mapWallDescriptor);
+
+	// RIGHT
+	mapWallDescriptor.centerPosition = glm::vec4(xPos + this->mapXScalement,
+		this->mapYScalement / 2.0f, zPos + (this->mapZScalement / 2.0f), 1.0f);
+	mapWallDescriptor.normalVector = glm::vec4(1.0f, 0.0f, 0.0f, 0.0f);
+	mapWallDescriptor.xLength = 0.0f;
+	mapWallDescriptor.yLength = this->mapYScalement;
+	mapWallDescriptor.zLength = this->mapZScalement;
+	mapWallDescriptors.push_back(mapWallDescriptor);
+
+	// FRONT
+	mapWallDescriptor.centerPosition = glm::vec4(xPos + (this->mapXScalement / 2.0f),
+		this->mapYScalement / 2.0f, zPos, 1.0f);
+	mapWallDescriptor.normalVector = glm::vec4(0.0f, 0.0f, -1.0f, 0.0f);
+	mapWallDescriptor.xLength = this->mapXScalement;
+	mapWallDescriptor.yLength = this->mapYScalement;
+	mapWallDescriptor.zLength = 0.0f;
+	mapWallDescriptors.push_back(mapWallDescriptor);
+
+	// BACK
+	mapWallDescriptor.centerPosition = glm::vec4(xPos + (this->mapXScalement / 2.0f),
+		this->mapYScalement / 2.0f, zPos + this->mapZScalement, 1.0f);
+	mapWallDescriptor.normalVector = glm::vec4(0.0f, 0.0f, 1.0f, 0.0f);
+	mapWallDescriptor.xLength = this->mapXScalement;
+	mapWallDescriptor.yLength = this->mapYScalement;
+	mapWallDescriptor.zLength = 0.0f;
+	mapWallDescriptors.push_back(mapWallDescriptor);
+
+	return mapWallDescriptors;
+}
+
+std::vector<MapWallDescriptor> Map::getMapWallDescriptorsForFreeTerrain(float xPos, float zPos) const
+{
+	MapWallDescriptor mapWallDescriptor;
+	std::vector<MapWallDescriptor> mapWallDescriptors;
+
+	// FLOOR
+	mapWallDescriptor.centerPosition = glm::vec4(xPos + (this->mapXScalement / 2.0f),
+		0.0f, zPos + (this->mapZScalement / 2.0f), 1.0f);
+	mapWallDescriptor.normalVector = glm::vec4(0.0f, 1.0f, 0.0f, 0.0f);
+	mapWallDescriptor.xLength = this->mapXScalement;
+	mapWallDescriptor.yLength = 0.0f;
+	mapWallDescriptor.zLength = this->mapZScalement;
+	mapWallDescriptors.push_back(mapWallDescriptor);
+
+	return mapWallDescriptors;
 }

@@ -8,30 +8,17 @@ Camera::Camera(glm::vec4 position, glm::vec4 up, glm::vec4 view)
 	this->position = position;
 	this->up = up;
 	this->view = view;
-	this->fov = 45.0f;
 	this->nearPlane = -0.1f;
 	this->farPlane = -1000.0f;
 	this->windowWidth = 800;
 	this->windowHeight = 600;
 	this->recalculateAngles();
-	this->recalculateViewMatrix();
-	this->recalculateProjectionMatrix();
 }
 
 // Init camera with standard values.
-Camera::Camera()
+Camera::Camera() : Camera(glm::vec4(0.0f, 0.0f, 1.0f, 1.0f), glm::vec4(0.0f, 0.0f, -1.0f, 0.0f),
+	glm::vec4(0.0f, 1.0f, 0.0f, 0.0f))
 {
-	this->position = glm::vec4(0.0f, 0.0f, 1.0f, 1.0f);
-	this->view = glm::vec4(0.0f, 0.0f, -1.0f, 0.0f);
-	this->up = glm::vec4(0.0f, 1.0f, 0.0f, 0.0f);
-	this->fov = 45.0f;
-	this->nearPlane = -0.1f;
-	this->farPlane = -100.0f;
-	this->windowWidth = 800;
-	this->windowHeight = 600;
-	this->recalculateAngles();
-	this->recalculateViewMatrix();
-	this->recalculateProjectionMatrix();
 }
 
 Camera::~Camera()
@@ -122,13 +109,6 @@ void Camera::setWindowWidth(unsigned int windowWidth)
 	this->recalculateProjectionMatrix();
 }
 
-// Change the field of view. This value is used to create the projection matrix.
-void Camera::setFieldOfView(float fov)
-{
-	this->fov = fov;
-	this->recalculateProjectionMatrix();
-}
-
 // Change the near plane. This value is used to create the projection matrix.
 void Camera::setNearPlane(float nearPlane)
 {
@@ -136,11 +116,21 @@ void Camera::setNearPlane(float nearPlane)
 	this->recalculateProjectionMatrix();
 }
 
+float Camera::getNearPlane() const
+{
+	return this->nearPlane;
+}
+
 // Change the far plane. This value is used to create the projection matrix.
 void Camera::setFarPlane(float farPlane)
 {
 	this->farPlane = farPlane;
 	this->recalculateProjectionMatrix();
+}
+
+float Camera::getFarPlane() const
+{
+	return this->farPlane;
 }
 
 // This function will recalculate the view vector based on pitch and yaw values.
@@ -175,16 +165,6 @@ void Camera::truncateAngles()
 		this->yaw = yawTopLimit;
 }
 
-const glm::mat4& Camera::getViewMatrix() const
-{
-	return this->viewMatrix;
-}
-
-const glm::mat4& Camera::getProjectionMatrix() const
-{
-	return this->projectionMatrix;
-}
-
 glm::vec4 Camera::getXAxis() const
 {
 	return this->xAxis;
@@ -198,6 +178,11 @@ glm::vec4 Camera::getYAxis() const
 glm::vec4 Camera::getZAxis() const
 {
 	return this->zAxis;
+}
+
+const glm::mat4& Camera::getViewMatrix() const
+{
+	return this->viewMatrix;
 }
 
 // This function will recalculate the View Matrix based on the view vector, up vector and camera position.
@@ -222,10 +207,42 @@ void Camera::recalculateViewMatrix()
 	}));
 }
 
+// PERSPECTIVE CAMERA
+
+PerspectiveCamera::PerspectiveCamera(glm::vec4 position, glm::vec4 up, glm::vec4 view) : Camera (position, up, view)
+{
+	this->fov = 45.0f;
+	this->recalculateViewMatrix();
+	this->recalculateProjectionMatrix();
+}
+
+PerspectiveCamera::PerspectiveCamera() : PerspectiveCamera(glm::vec4(0.0f, 0.0f, 1.0f, 1.0f),
+	glm::vec4(0.0f, 0.0f, -1.0f, 0.0f), glm::vec4(0.0f, 1.0f, 0.0f, 0.0f))
+{
+
+}
+
+PerspectiveCamera::~PerspectiveCamera()
+{
+
+}
+
+// Change the field of view. This value is used to create the projection matrix.
+void PerspectiveCamera::setFieldOfView(float fov)
+{
+	this->fov = fov;
+	this->recalculateProjectionMatrix();
+}
+
+const glm::mat4& PerspectiveCamera::getProjectionMatrix() const
+{
+	return this->projectionMatrix;
+}
+
 // This function will recalculate the Projection Matrix based on the near plane, the far plane, the field of
 // view, the window width and the window height.
 // Must be called everytime one of them are changed. The result is stored in this->projectionMatrix.
-void Camera::recalculateProjectionMatrix()
+void PerspectiveCamera::recalculateProjectionMatrix()
 {
 	float near = this->nearPlane;
 	float far = this->farPlane;
@@ -237,16 +254,74 @@ void Camera::recalculateProjectionMatrix()
 	glm::mat4 P = glm::transpose(glm::mat4({
 		near, 0, 0, 0,
 		0, near, 0, 0,
-		0, 0, near + far, - near * far,
+		0, 0, near + far, -near * far,
 		0, 0, 1, 0
 	}));
 
 	glm::mat4 M = glm::transpose(glm::mat4({
-		2.0f / (right - left), 0, 0, - (right + left)/(right - left),
-		0, 2.0f / (top - bottom), 0, - (top + bottom)/(top - bottom),
-		0, 0, 2.0f / (far - near), - (far + near) / (far - near),
+		2.0f / (right - left), 0, 0, -(right + left) / (right - left),
+		0, 2.0f / (top - bottom), 0, -(top + bottom) / (top - bottom),
+		0, 0, 2.0f / (far - near), -(far + near) / (far - near),
 		0, 0, 0, 1
 	}));
 
 	this->projectionMatrix = -M * P;
+}
+
+// ORTHOGRAPHIC CAMERA
+
+OrthographicCamera::OrthographicCamera(glm::vec4 position, glm::vec4 up, glm::vec4 view) : Camera(position, up, view)
+{
+	this->orthoRange = 1.0f;
+	this->recalculateViewMatrix();
+	this->recalculateProjectionMatrix();
+}
+
+OrthographicCamera::OrthographicCamera() : OrthographicCamera(glm::vec4(0.0f, 0.0f, 1.0f, 1.0f),
+	glm::vec4(0.0f, 0.0f, -1.0f, 0.0f), glm::vec4(0.0f, 1.0f, 0.0f, 0.0f))
+{
+
+}
+
+OrthographicCamera::~OrthographicCamera()
+{
+
+}
+
+void OrthographicCamera::setOrthoRange(float range)
+{
+	this->orthoRange = range;
+	this->recalculateProjectionMatrix();
+}
+
+float OrthographicCamera::getOrthoRange()
+{
+	return this->orthoRange;
+}
+
+const glm::mat4& OrthographicCamera::getProjectionMatrix() const
+{
+	return this->projectionMatrix;
+}
+
+// This function will recalculate the Projection Matrix based on the near plane, the far plane, the field of
+// view, the window width and the window height.
+// Must be called everytime one of them are changed. The result is stored in this->projectionMatrix.
+void OrthographicCamera::recalculateProjectionMatrix()
+{
+	float near = this->nearPlane;
+	float far = this->farPlane;
+	float top = this->orthoRange;
+	float bottom = -top;
+	float right = top * ((float)this->windowWidth / (float)this->windowHeight);
+	float left = -right;
+
+	glm::mat4 M = glm::transpose(glm::mat4({
+		2.0f / (right - left), 0, 0, -(right + left) / (right - left),
+		0, 2.0f / (top - bottom), 0, -(top + bottom) / (top - bottom),
+		0, 0, 2.0f / (far - near), -(far + near) / (far - near),
+		0, 0, 0, 1
+	}));
+
+	this->projectionMatrix = M;
 }

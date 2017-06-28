@@ -3,16 +3,15 @@
 #include "Shader.h"
 #include "Light.h"
 #include "Player.h"
+#include "Map.h"
 #include <vector>
 
 namespace raw
 {
-	class PointLight;
-	class SpotLight;
-	class Map;
 	class StreetLamp;
 	class Network;
 	class Skybox;
+	class OrthographicCamera;
 
 	enum class CameraType
 	{
@@ -32,18 +31,25 @@ namespace raw
 		void destroy();
 		void processInput(bool* keyState, float deltaTime);
 		void processMouseChange(double xPos, double yPos);
+		void processScrollChange(double xOffset, double yOffset);
 		void processMouseClick(int button, int action);
+		Player* getLocalPlayer();
 		Player* getSecondPlayer();
 	private:
+		// Initialization Function
+		void createMap();
 		void createShaders();
 		void createCameras();
 		void createLights();
 		void createEntities();
+
+		// Auxiliar Functions
 		glm::vec4 getNewPositionForMovement(const glm::vec4& position, const glm::vec4& direction, float deltaTime,
 			float movementSpeed) const;
+		Camera* getSelectedCamera();
 		const Camera* getSelectedCamera() const;
 		StreetLamp* createStreetLamp(const glm::vec4& position, float rotY);
-		void damagePlayer(Player* player, PlayerCollision fireCollision);
+		void movePlayerAndCamerasBasedOnInput(bool* keyState, float deltaTime);
 
 		// Network
 		Network* network;
@@ -59,23 +65,31 @@ namespace raw
 		Shader* skyboxShader;
 
 		// Cameras
-		Camera freeCamera;
-		Camera lookAtCamera;
+		Camera* freeCamera;
+		OrthographicCamera* orthoFreeCamera;
+		Camera* lookAtCamera;
 		CameraType selectedCamera;
 
-		Skybox* skybox;
+		// Players
 		Player* player;
 		Player* secondPlayer;
+
+		// Map
 		Map* map;
+		std::vector<MapWallDescriptor> mapWallDescriptors;
+
+		// Skybox
+		Skybox* skybox;
+		
+		// Entities and Light
 		std::vector<Light*> lights;
 		std::vector<StreetLamp*> streetLamps;
+		std::vector<Model*> models;
 		std::vector<Entity*> entities;
 
+		// Game settings
 		bool singlePlayer;
 		bool useNormalMap;
-
-		// Temporary for tests
-		SpotLight* boundSpotLight;
-		Entity* boundEntity;
+		bool useOrthoCamera;
 	};
 }

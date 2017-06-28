@@ -3,7 +3,8 @@
 
 using namespace raw;
 
-//#define DEBUG
+#define DEBUG
+//#define SHOW_PERIODIC_PACKETS
 
 #ifdef DEBUG
 #include <iostream>
@@ -13,7 +14,7 @@ enum PacketType
 {
 	PLAYER_INFORMATION = 1,
 	PLAYER_FIRE_ANIMATION = 2,
-	PLAYER_FIRE_HIT = 3
+	PLAYER_FIRE_HIT = 3,
 };
 
 Network::Network(Game* game, char* peerIp, unsigned int peerPort)
@@ -54,9 +55,15 @@ void Network::sendPlayerFireAnimation()
 	this->udpSender->sendMessage(buffer, bufferSize);
 }
 
-void Network::sendPlayerFireHit()
+void Network::sendPlayerFireHitAndAnimation(int damage)
 {
-	return;
+	const unsigned int packetId = PLAYER_FIRE_HIT;
+
+	const unsigned int bufferSize = sizeof(packetId) + sizeof(damage);
+	char buffer[bufferSize];
+	memcpy(buffer, &packetId, sizeof(packetId));
+	memcpy(buffer + sizeof(packetId), &damage, sizeof(damage));
+	this->udpSender->sendMessage(buffer, bufferSize);
 }
 
 void Network::receiveAndProcessPackets()
@@ -89,7 +96,7 @@ void Network::processPlayerInformationPacket(char* buffer)
 	glm::vec4 playerPosition = *(glm::vec4*)(buffer);
 	glm::vec4 playerLookDirection = *(glm::vec4*)(buffer + sizeof(playerPosition));
 
-#ifdef DEBUG
+#if defined (DEBUG) && defined (SHOW_PERIODIC_PACKETS)
 	std::cout << "Packet Received:" << std::endl;
 	std::cout << "ID: " << PLAYER_INFORMATION << std::endl;
 	std::cout << "Player Position: " << "<" << playerPosition.x << ", " << playerPosition.y << ", " <<
@@ -117,14 +124,24 @@ void Network::processPlayerFireAnimationPacket(char* buffer)
 	std::cout << "ID: " << PLAYER_FIRE_ANIMATION << std::endl;
 #endif
 
-	secondPlayer->fire();
+	// Process Packet
+	secondPlayer->startShootingAnimation();
 }
 
 void Network::processPlayerFireHitPacket(char* buffer)
 {
+	Player* localPlayer = this->boundGame->getLocalPlayer();
+	Player* secondPlayer = this->boundGame->getSecondPlayer();
+	int damage = *(int*)(buffer);
+
 #ifdef DEBUG
 	std::cout << "Packet Received:" << std::endl;
 	std::cout << "ID: " << PLAYER_FIRE_HIT << std::endl;
+	std::cout << "Damage: " << damage << std::endl;
 #endif
-	return;
+
+	// Process Packet
+	localPlayer->removeHp(damage);
+	localPlayer->startDamageAnimation();
+	secondPlayer->startShootingAnimation();
 }

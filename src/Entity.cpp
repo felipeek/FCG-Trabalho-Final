@@ -5,6 +5,9 @@
 
 using namespace raw;
 
+extern int windowWidth;
+extern int windowHeight;
+
 Entity::Entity(Model* model)
 {
 	this->model = model;
@@ -84,9 +87,20 @@ void Entity::render(const Shader& shader, const Camera& camera) const
 
 void Entity::render(const Shader& shader) const
 {
+	float ratio = (float)windowHeight / (float)windowWidth;
+
+	glm::mat4 scaleMatrix = glm::transpose(glm::mat4({
+		ratio, 0.0f, 0.0f, 0.0f,
+		0.0f, 1.0f, 0.0f, 0.0f,
+		0.0f, 0.0f, 1.0f, 0.0f,
+		0.0f, 0.0f, 0.0f, 1.0f
+	}));
+
 	shader.useProgram();
 	GLuint modelMatrixLocation = glGetUniformLocation(shader.getProgram(), "modelMatrix");
+	GLuint scaleMatrixLocation = glGetUniformLocation(shader.getProgram(), "scaleMatrix");
 	glUniformMatrix4fv(modelMatrixLocation, 1, GL_FALSE, glm::value_ptr(this->transform.getModelMatrix()));
+	glUniformMatrix4fv(scaleMatrixLocation, 1, GL_FALSE, glm::value_ptr(scaleMatrix));
 
 	this->model->render(shader, false);
 }

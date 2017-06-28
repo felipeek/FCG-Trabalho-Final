@@ -3,28 +3,22 @@
 #include "PointLight.h"
 #include "SpotLight.h"
 #include "DirectionalLight.h"
-#include "Map.h"
 #include "StaticModels.h"
-#include "GLFW\glfw3.h"
 #include "Network.h"
 #include "StreetLamp.h"
 #include "Skybox.h"
-#include <iostream>
+
+#include <GLFW\glfw3.h>
 
 using namespace raw;
 
-// @TEMPORARY
-float x, y, z, xx, yy, zz;
-
 Game::Game()
-{
-	
+{	
 }
 
 Game::~Game()
 {
 }
-
 
 void Game::init(bool singlePlayer)
 {
@@ -32,13 +26,13 @@ void Game::init(bool singlePlayer)
 
 	// Init Network
 	if (!this->singlePlayer)
-		this->network = new Network(this, "186.215.50.40", 8888);
+		this->network = new Network(this, "127.0.0.1", 8888);
 
 	// Create sky
 	this->skybox = new Skybox();
 
 	// Create Map
-	this->map = new Map(".\\res\\map\\map.png");
+	this->createMap();
 
 	// Create Shaders
 	this->createShaders();
@@ -48,6 +42,7 @@ void Game::init(bool singlePlayer)
 
 	// Create Player
 	Model* playerModel = new Model(".\\res\\art\\carinhaloko\\carinhaloko_stance.obj");
+	this->models.push_back(playerModel);
 	this->player = new Player(playerModel);
 	this->player->getTransform().setWorldScale(glm::vec3(0.12f, 0.12f, 0.12f));
 
@@ -64,16 +59,17 @@ void Game::init(bool singlePlayer)
 	// Create Entities
 	this->createEntities();
 
+	// Set game settings
 	this->useNormalMap = true;
+	this->useOrthoCamera = false;
 }
 
 void Game::render() const
 {
 	const Camera* selectedCamera = this->getSelectedCamera();
-
-	// First Pass
 	Shader* shaderToUse;
 
+	// Get selected shader
 	switch (this->shaderType)
 	{
 		case ShaderType::FIXED:
@@ -101,12 +97,15 @@ void Game::render() const
 			shaderToUse = this->phongShader;
 			break;
 	}
-	
+
+	// Render skybox
 	this->skybox->render(*skyboxShader, *selectedCamera);
 
+	// Render all entities
 	for (unsigned int i = 0; i < this->entities.size(); ++i)
 		this->entities[i]->render(*shaderToUse, *selectedCamera, this->lights, this->useNormalMap);
 
+	// Render all street lamps
 	for (unsigned int i = 0; i < this->streetLamps.size(); ++i)
 		this->streetLamps[i]->render(*shaderToUse, *basicShader, *selectedCamera, this->lights, this->useNormalMap);
 
@@ -117,58 +116,65 @@ void Game::render() const
 		this->player->renderGun(*shaderToUse, *selectedCamera, this->lights, this->useNormalMap);
 	}
 
+	// Render first player shotmarks
+	this->player->renderShotMarks(*basicShader, *selectedCamera);
+
+	// Render second player only if game is being played multiplayer
 	if (!this->singlePlayer)
 	{
 		this->secondPlayer->render(*shaderToUse, *selectedCamera, this->lights, this->useNormalMap);
 		this->secondPlayer->renderGun(*shaderToUse, *selectedCamera, this->lights, this->useNormalMap);
+		this->secondPlayer->renderShotMarks(*basicShader, *selectedCamera);
 	}
 
-	// If player camera is being used, clear the depth buffer to render the gun. This way, the gun will always appear
-	// on the screen, regardless if it is behind the wall, for example.
+	// Render aim only if player Camera is being used
 	if (this->selectedCamera == CameraType::PLAYER)
-		glClear(GL_DEPTH_BUFFER_BIT);
-
-	// Second Pass
-	// Should only render AIM when Player Camera is being used!
-	if (this->selectedCamera == CameraType::PLAYER)
-		this->player->renderAim(*fixedShader);
+		this->player->renderScreenImages(*fixedShader);
 }
 
+// Update game
 void Game::update(float deltaTime)
 {
-	static const int networkUpdatesPerSecond = 10;
 	static double lastTime;
-	const Camera& playerCamera = this->player->getCamera();
+	const Camera* playerCamera = this->player->getCamera();
 
-	if (this->boundSpotLight)
-	{
-		this->boundSpotLight->setPosition(playerCamera.getPosition());
-		this->boundSpotLight->setDirection(playerCamera.getViewVector());
-	}
+	// How many times, per second, information about the player should be sent to the second player (multiplayer only)
+	static const int networkUpdatesPerSecond = 10;
 
 	// Update LookAt Camera
+	static const float lookAtCameraDistance = 2.2f;
 	glm::vec4 playerPosition = this->player->getTransform().getWorldPosition();
-	glm::vec4 distanceVector = -5.0f * glm::normalize(this->lookAtCamera.getViewVector());
+	glm::vec4 distanceVector = -lookAtCameraDistance * glm::normalize(this->lookAtCamera->getViewVector());
 	glm::vec4 lookAtNewPosition = playerPosition + distanceVector;
-	this->lookAtCamera.setPosition(lookAtNewPosition);
+	this->lookAtCamera->setPosition(lookAtNewPosition);
 
+	// Update player
 	this->player->update();
 
+	// If multiplayer
 	if (!this->singlePlayer)
 	{
+		// Update second player
 		this->secondPlayer->update();
 
-		// If two players mode, update network.
+		// Check if new packets arrived from the second player.
+		this->network->receiveAndProcessPackets();
+
+		// Send information to second player periodically.
 		double currentTime = glfwGetTime();
-		if (currentTime > lastTime + 1.0f/networkUpdatesPerSecond)
+		if (currentTime > lastTime + 1.0f / networkUpdatesPerSecond)
 		{
 			this->network->sendPlayerInformation(*this->player);
-			this->network->receiveAndProcessPackets();
 			lastTime = currentTime;
 		}
 	}
-	
-	//std::cout << "Second Player HP: " << this->secondPlayer->getHp() << std::endl;
+
+	// Update Ortho Free Camera (to match Perspective Free Camera)
+	this->orthoFreeCamera->setPosition(freeCamera->getPosition());
+	this->orthoFreeCamera->setNearPlane(freeCamera->getNearPlane());
+	this->orthoFreeCamera->setFarPlane(freeCamera->getFarPlane());
+	this->orthoFreeCamera->setUpVector(freeCamera->getUpVector());
+	this->orthoFreeCamera->setViewVector(freeCamera->getViewVector());
 }
 
 void Game::destroy()
@@ -185,34 +191,39 @@ void Game::destroy()
 	delete this->phongShader;
 	delete this->gouradShader;
 	delete this->flatShader;
+	delete this->fixedShader;
+	delete this->textureShader;
+	delete this->skyboxShader;
+
+	// Destroy Cameras
+	delete this->freeCamera;
+	delete this->lookAtCamera;
 
 	// Destroy Lights
 	for (unsigned int i = 0; i < this->lights.size(); ++i)
 		delete this->lights[i];
 
 	// Destroy Street Lamps
-	// We can just clear the vector, since all street lamps were inside the lights array.
+	// We can just clear the vector, since all street lamps were inside the lights array anyway.
 	this->streetLamps.clear();
 
 	// Destroy Models
+	for (unsigned int i = 0; i < this->models.size(); ++i)
+		delete this->models[i];
+
+	// Destroy Entities
 	for (unsigned int i = 0; i < this->entities.size(); ++i)
-	{
-		delete this->entities[i]->getModel();	// Delete Model
-		delete this->entities[i];				// Delete Entity
-	}
+		delete this->entities[i];
 
 	// Destroy players
 	delete this->player;
 	if (!this->singlePlayer)
 		delete this->secondPlayer;
 
-	this->map = 0;
-	this->basicShader = 0;
-	this->phongShader = 0;
-	this->gouradShader = 0;
-	this->flatShader = 0;
+	// Clear vectors, so game can be restarted by calling init() again.
 	this->lights.clear();
 	this->entities.clear();
+	this->models.clear();
 
 	// Destroy Textures
 	// @TODO: destroyAll can't destroy default diffuseMap and default specularMap,
@@ -220,11 +231,14 @@ void Game::destroy()
 	// Texture::destroyAll();
 }
 
+// If mouse is moved, this function is called as a callback.
 void Game::processMouseChange(double xPos, double yPos)
 {
 	static double xPosOld, yPosOld;
 	static bool firstTime = true;
-	static const float cameraMouseSpeed = 0.00033f;
+	// This constant is basically the mouse sensibility.
+	// @TODO: Allow mouse sensibility to be configurable.
+	static const float cameraMouseSpeed = 0.01f;
 	
 	if (!firstTime)
 	{
@@ -234,19 +248,19 @@ void Game::processMouseChange(double xPos, double yPos)
 		// If Free Camera is Selected, mouse change should only change free camera direction.
 		if (this->selectedCamera == CameraType::FREE)
 		{
-			freeCamera.incPitch(-cameraMouseSpeed * (float)xDifference);
-			freeCamera.incYaw(cameraMouseSpeed * (float)yDifference);
+			freeCamera->incPitch(-cameraMouseSpeed * (float)xDifference);
+			freeCamera->incYaw(cameraMouseSpeed * (float)yDifference);
 		}
 		// If LookAt Camera is selected, mouse change should change look at camera direction
 		else if (this->selectedCamera == CameraType::LOOKAT)
 		{
-			lookAtCamera.incPitch(-cameraMouseSpeed * (float)xDifference);
-			lookAtCamera.incYaw(cameraMouseSpeed * (float)yDifference);
+			lookAtCamera->incPitch(-cameraMouseSpeed * (float)xDifference);
+			lookAtCamera->incYaw(cameraMouseSpeed * (float)yDifference);
 		}
 		// If Player camera is selected, mouse change should change player look direction
 		else if (this->selectedCamera == CameraType::PLAYER)
 		{
-			this->player->changeLookDirection(xDifference, yDifference);
+			this->player->changeLookDirection(xDifference, yDifference, cameraMouseSpeed);
 		}
 	}
 	else
@@ -256,54 +270,48 @@ void Game::processMouseChange(double xPos, double yPos)
 	yPosOld = yPos;
 }
 
+// If scroll was used, this function is called as a callback.
+void Game::processScrollChange(double xOffset, double yOffset)
+{
+	static const float orthoZoomSpeed = 0.1f;
+
+	// Check if ortho camera is being used
+	if (this->selectedCamera == CameraType::FREE && this->useOrthoCamera)
+	{
+		float orthoRange = this->orthoFreeCamera->getOrthoRange();
+		this->orthoFreeCamera->setOrthoRange(orthoRange - orthoZoomSpeed * yOffset);
+	}
+}
+
+// If mouse is clicked, this function is called as a callback.
 void Game::processMouseClick(int button, int action)
 {
 	if (button == GLFW_MOUSE_BUTTON_LEFT && action == GLFW_PRESS)
 	{
-		if (!this->singlePlayer)
-			this->network->sendPlayerFireAnimation();
-		this->player->fire();
+		// Start player firing animation.
+		this->player->startShootingAnimation();
 
-		// @TODO: send fire animation along with collision info to second player!
+		// If multiplayer
 		if (!this->singlePlayer)
 		{
-			PlayerCollision collision = this->player->isViewRayCollidingWith(this->secondPlayer);
-			this->damagePlayer(this->secondPlayer, collision);
+			// Shoot, testing collisions with map walls and second player
+			this->player->shoot(this->secondPlayer, this->mapWallDescriptors, this->network);
+		}
+		else
+		{
+			// Shoot, testing collisions with map walls only.
+			this->player->shoot(this->mapWallDescriptors);
 		}
 	}
 }
 
-void Game::damagePlayer(Player* player, PlayerCollision fireCollision)
+// Returns the local player.
+Player* Game::getLocalPlayer()
 {
-	switch (fireCollision)
-	{
-	case PlayerCollision::HEAD:
-		this->secondPlayer->removeHp(60);
-		break;
-	case PlayerCollision::TORSO:
-		this->secondPlayer->removeHp(30);
-		break;
-	case PlayerCollision::UPPERRIGHTARM:
-	case PlayerCollision::LOWERRIGHTARM:
-	case PlayerCollision::UPPERLEFTARM:
-	case PlayerCollision::LOWERLEFTARM:
-	case PlayerCollision::RIGHTHAND:
-	case PlayerCollision::LEFTHAND:
-		this->secondPlayer->removeHp(16);
-		break;
-	case PlayerCollision::RIGHTTHIGH:
-	case PlayerCollision::LEFTTHIGH:
-	case PlayerCollision::RIGHTSHIN:
-	case PlayerCollision::LEFTSHIN:
-		this->secondPlayer->removeHp(16);
-		break;
-	case PlayerCollision::RIGHTFOOT:
-	case PlayerCollision::LEFTFOOT:
-		this->secondPlayer->removeHp(7);
-		break;
-	}
+	return this->player;
 }
 
+// Returns the second player or null if not multiplayer.
 Player* Game::getSecondPlayer()
 {
 	if (!this->singlePlayer)
@@ -312,6 +320,19 @@ Player* Game::getSecondPlayer()
 	return 0;
 }
 
+// Create game map
+void Game::createMap()
+{
+	this->map = new Map(".\\res\\map\\map.png");
+	// Generate map wall descriptors. They are used to calculate collisions with map walls.
+	this->mapWallDescriptors = this->map->generateMapWallDescriptors();
+	Model* mapModel = this->map->generateMapModel();
+	this->models.push_back(mapModel);
+	Entity* mapEntity = new Entity(mapModel);
+	this->entities.push_back(mapEntity);
+}
+
+// Create all shaders
 void Game::createShaders()
 {
 	this->fixedShader = new Shader(ShaderType::FIXED);
@@ -324,31 +345,29 @@ void Game::createShaders()
 	this->shaderType = ShaderType::PHONG;
 }
 
+// Create all cameras
 void Game::createCameras()
 {
 	glm::vec4 freeCameraInitialPosition = glm::vec4(0.46f, 4.08f, 15.65f, 1.0f);
 	glm::vec4 freeCameraInitialUpVector = glm::vec4(0.0f, 1.0f, 0.0f, 0.0f);
 	glm::vec4 freeCameraInitialViewVector = glm::vec4(0.0039f, -0.0007967f, -1.0f, 0.0f);
-	this->freeCamera = Camera(freeCameraInitialPosition, freeCameraInitialUpVector, freeCameraInitialViewVector);
+	this->freeCamera = new PerspectiveCamera(freeCameraInitialPosition, freeCameraInitialUpVector, freeCameraInitialViewVector);
+	this->orthoFreeCamera = new OrthographicCamera(freeCameraInitialPosition, freeCameraInitialUpVector, freeCameraInitialViewVector);
 
 	glm::vec4 lookAtCameraInitialPosition = glm::vec4(0.46f, 4.08f, 15.65f, 1.0f);
 	glm::vec4 lookAtCameraInitialUpVector = glm::vec4(0.0f, 1.0f, 0.0f, 0.0f);
 	glm::vec4 lookAtCameraInitialViewVector = glm::vec4(0.0039f, -0.0007967f, -1.0f, 0.0f);
-	this->lookAtCamera = Camera(freeCameraInitialPosition, freeCameraInitialUpVector, freeCameraInitialViewVector);
+	this->lookAtCamera = new PerspectiveCamera(freeCameraInitialPosition, freeCameraInitialUpVector, freeCameraInitialViewVector);
 
 	this->selectedCamera = CameraType::PLAYER;
 }
 
+// Create all lights
 void Game::createLights()
 {
 	glm::vec4 ambientLight = glm::vec4(0.0f, 0.0f, 0.0f, 1.0f);
 	glm::vec4 diffuseLight = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f);
 	glm::vec4 specularLight = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f);
-	//LightAttenuation attenuation = {
-	//	1.0f,		// Constant Term
-	//	0.14f,		// Linear Term
-	//	0.07f		// Quadratic Term
-	//};
 
 	LightAttenuation attenuation = {
 		1.0f,		// Constant Term
@@ -369,7 +388,6 @@ void Game::createLights()
 	//spotLight->setInnerCutOffAngle(glm::radians(12.5f));
 	//spotLight->setOuterCutOffAngle(glm::radians(17.5f));
 	//spotLight->setDirection(glm::vec4(0, 0, -1, 0));
-	//this->boundSpotLight = spotLight;	// @TEMPORARY
 	//this->lights.push_back(spotLight);
 
 	// DIRECTIONAL LIGHT
@@ -468,12 +486,14 @@ void Game::createLights()
 	this->streetLamps.push_back(streetLamp);
 }
 
+// Create a street lamp given a position and a rotation.
 StreetLamp* Game::createStreetLamp(const glm::vec4& position, float rotY)
 {
 	glm::vec4 ambientLight = glm::vec4(0.0f, 0.0f, 0.0f, 1.0f);
 	glm::vec4 diffuseLight = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f);
 	glm::vec4 specularLight = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f);
 
+	// Street lamp light attenuation
 	LightAttenuation attenuation = {
 		1.0f,		// Constant Term
 		0.35f,		// Linear Term
@@ -489,98 +509,31 @@ StreetLamp* Game::createStreetLamp(const glm::vec4& position, float rotY)
 
 void Game::createEntities()
 {
-	// CREATE A CUBE (cube.obj)
-	//Texture* diffuseMap = Texture::load(".\\res\\art\\green.png");
-	//Model* cubeModel = new Model(".\\res\\art\\cube.obj");
-	//Entity* cubeEntity = new Entity(cubeModel);
-	//cubeModel->setDiffuseMapOfAllMeshes(diffuseMap);
-	//cubeEntity->getTransform().setWorldPosition(glm::vec4(-8.0f, 0.0f, 9.0f, 1.0f));
-	//cubeEntity->getTransform().setWorldRotation(glm::vec3(0.35f, 0.77f, 0.12f));
-
-	// CREATE COMPLEX MODEL (nanosuit.obj)
-	//Model* complexModel = new Model(".\\res\\art\\obeseMale\\obese_male.obj");
-	//Entity* complexEntity = new Entity(complexModel);
-	//complexEntity->getTransform().setWorldPosition(glm::vec4(10.0f, 2.0f, 10.0f, 1.0f));
-	//complexEntity->getTransform().setWorldScale(glm::vec3(0.05f, 0.05f, 0.05f));
-
-	//// CREATE BUNNY MODEL (bunny.obj)
-	//Texture* bunnyDiffuseMap = Texture::load(".\\res\\art\\blue2.png");
-	//Texture* bunnySpecularMap = Texture::load(".\\res\\art\\specBunny.png");
-	//Model* bunnyModel = new Model(".\\res\\art\\bunny.obj");
-	//bunnyModel->setDiffuseMapOfAllMeshes(bunnyDiffuseMap);
-	//bunnyModel->setSpecularMapOfAllMeshes(bunnySpecularMap);
-	//bunnyModel->setSpecularShinenessOfAllMeshes(32.0f);
-	//Entity* bunnyEntity = new Entity(bunnyModel);
-	//bunnyEntity->getTransform().setWorldPosition(glm::vec4(0.0f, 0.0f, -10.0f, 1.0f));
-	//this->boundEntity = bunnyEntity;		// @TEMPORARY
-	//
-	//// CREATE TREE MODEL (arvore.obj)
-	//Texture* arvoreTexture = Texture::load(".\\res\\art\\arvore_tex.png");
-	//Model* arvoreModel = new Model(".\\res\\art\\arvore.obj");
-	//Entity* arvoreEntity = new Entity(arvoreModel);
-	//arvoreModel->setDiffuseMapOfAllMeshes(arvoreTexture);
-	//arvoreEntity->getTransform().setWorldPosition(glm::vec4(0.0f, 0.0f, 6.0f, 1.0f));
-	//
-	//// CREATE SPHERE MODEL (sphere.obj)
-	//Texture* sphereTexture = Texture::load(".\\res\\art\\blue2.png");
-	//Model* sphereModel = new Model(".\\res\\art\\sphere.obj");
-	//Entity* sphereEntity = new Entity(sphereModel);
-	//sphereModel->getMeshes()[0]->setDiffuseMap(sphereTexture);
-	//arvoreEntity->getTransform().setWorldPosition(glm::vec4(1.0f, 0.0f, 10.0f, 1.0f));
-	//
-	//// CREATE QUAD
-	//Texture* quadTexture = Texture::load(".\\res\\art\\smile.png");
-	//Quad* quad = new Quad(quadTexture);
-	//std::vector<Mesh*> quadMeshes = std::vector<Mesh*>({ quad });
-	//Model* quadModel = new Model(quadMeshes);
-	//Entity* quadEntity = new Entity(quadModel);
-	//quadEntity->getTransform().setWorldPosition(glm::vec4(10.5f, 0.0f, 10.0f, 1.0f));
-
-	// CREATE MAP
-	Model* mapModel = this->map->generateMapModel();
-	Entity* mapEntity = new Entity(mapModel);
-
+	// Create Wood Billet
 	Model* woodBilletModel = new Model(".\\res\\art\\woodbillet\\simple_wood.obj");
-
-	woodBilletModel->getMeshes()[0]->setVisible(false);	// hide plane
+	// Hide underisable plane that came with the model
+	woodBilletModel->getMeshes()[0]->setVisible(false);
+	// Set black specular map - wood should probably have no specular.
 	woodBilletModel->setSpecularMapOfAllMeshes(Texture::load(".\\res\\art\\black.png"));
-	// fill textures
+	// Set diffuse maps in a loop based on the mesh order.
 	for (int i = 1; i < 19; i++)
 		if (i % 2)
-		{
 			woodBilletModel->getMeshes()[i]->setDiffuseMap(Texture::load(".\\res\\art\\woodbillet\\BarkDecidious0194_1_S.jpg"));
-			//woodBilletModel->getMeshes()[i]->setDiffuseMap(Texture::load(".\\res\\art\\w_d.jpg"));
-			//woodBilletModel->getMeshes()[i]->setSpecularMap(Texture::load(".\\res\\art\\w_s.jpg"));
-			// normal map n funciona provavelmente pq modelo n tem vetores tangent
-			//woodBilletModel->getMeshes()[i]->setNormalMap(Texture::load(".\\res\\art\\w_n.jpg"));
-		}
 		else
 			woodBilletModel->getMeshes()[i]->setDiffuseMap(Texture::load(".\\res\\art\\woodbillet\\wood2.png"));
-
+	this->models.push_back(woodBilletModel);
+	// Create wood billet entity and transform
 	Entity* woodBilletEntity = new Entity(woodBilletModel);
 	woodBilletEntity->getTransform().setWorldPosition(glm::vec4(5.0114f, 0.05f, 1.39f, 1.0f));
 	woodBilletEntity->getTransform().setWorldScale(glm::vec3(0.05f, 0.05f, 0.05f));
-
-	//complexModel->getMeshes()[0]->setDiffuseMap(Texture::load(".\\res\\art\\tree\\bark.jpg"));
-	//complexModel->getMeshes()[0]->setSpecularMap(Texture::load(".\\res\\art\\black.png"));
-	//complexModel->getMeshes()[1]->setDiffuseMap(Texture::load(".\\res\\art\\tree\\branch.png"));
-	//complexModel->getMeshes()[1]->setSpecularMap(Texture::load(".\\res\\art\\black.png"));
-
-	// VECTOR CREATION
-	//this->entities.push_back(cubeEntity);
 	this->entities.push_back(woodBilletEntity);
-	//this->entities.push_back(bunnyEntity);
-	//this->entities.push_back(arvoreEntity);
-	//this->entities.push_back(sphereEntity);
-	//this->entities.push_back(quadEntity);
-	this->entities.push_back(mapEntity);
 }
 
 // Returns a new position based on an original position and a movement direction.
 // If there are no collisions, the new position will just be the original position + movementSpeed * direction
 // If there is a collision, instead of just returning the original position (no movement), try to return
 // the best position based on the map. (Try to slide when colliding with walls).
-// Method will only work for map where walls are parallel to X and Z axes.z
+// Method will only work for map where walls are parallel to X and Z axes.
 glm::vec4 Game::getNewPositionForMovement(const glm::vec4& position, const glm::vec4& direction,
 	float deltaTime, float movementSpeed) const
 {
@@ -604,117 +557,53 @@ glm::vec4 Game::getNewPositionForMovement(const glm::vec4& position, const glm::
 	return newPos;
 }
 
+// Get game's selected camera
+Camera* Game::getSelectedCamera()
+{
+	switch (this->selectedCamera)
+	{
+	case CameraType::FREE:
+		return this->freeCamera;
+	case CameraType::LOOKAT:
+		return this->lookAtCamera;
+	case CameraType::PLAYER:
+	default:
+		return this->player->getCamera();
+	}
+}
+
+// Get game's selected camera (const version)
 const Camera* Game::getSelectedCamera() const
 {
 	switch (this->selectedCamera)
 	{
 	case CameraType::FREE:
-		return &this->freeCamera;
-		break;
+		if (this->useOrthoCamera)
+			return this->orthoFreeCamera;
+		else
+			return this->freeCamera;
 	case CameraType::LOOKAT:
-		return &this->lookAtCamera;
+		return this->lookAtCamera;
 	case CameraType::PLAYER:
 	default:
-		return &this->player->getCamera();
+		return this->player->getCamera();
 	}
 }
 
+// This function will check which keys are pressed and do stuff based on it.
 void Game::processInput(bool* keyState, float deltaTime)
 {
-	static const float cameraSpeed = 5.0f;
+	// Move Players and Cameras based on Input
+	this->movePlayerAndCamerasBasedOnInput(keyState, deltaTime);
 
-	if (this->selectedCamera == CameraType::FREE)
-	{
-		glm::vec4 movementDirection = glm::vec4(0.0f, 0.0f, 0.0f, 0.0f);
-		glm::vec4 lookDirection = freeCamera.getViewVector();
-		glm::vec4 perpendicularDirection = freeCamera.getXAxis();
-
-		if (keyState[GLFW_KEY_W])
-			movementDirection += glm::normalize(lookDirection);
-		if (keyState[GLFW_KEY_S])
-			movementDirection -= glm::normalize(lookDirection);
-		if (keyState[GLFW_KEY_A])
-			movementDirection -= glm::normalize(perpendicularDirection);
-		if (keyState[GLFW_KEY_D])
-			movementDirection += glm::normalize(perpendicularDirection);
-
-		if (movementDirection != glm::vec4(0.0f, 0.0f, 0.0f, 0.0f))
-		{
-			glm::vec4 playerPos = this->player->getTransform().getWorldPosition();
-			movementDirection = glm::normalize(movementDirection);
-			freeCamera.setPosition(freeCamera.getPosition() + deltaTime * cameraSpeed * movementDirection);
-		}
-	}
-	else if (this->selectedCamera == CameraType::PLAYER || this->selectedCamera == CameraType::LOOKAT)
-	{
-		if (this->player)
-		{
-			const static float movementSpeed = 3.5f;
-			const static float movementSpeedWithShift = 1.5f;
-			glm::vec4 movementDirection = glm::vec4(0.0f, 0.0f, 0.0f, 0.0f);
-			glm::vec4 lookDirection = this->player->getLookDirection();
-			glm::vec4 perpendicularDirection = this->player->getPerpendicularDirection();
-
-			// Must ignore Y
-			lookDirection.y = 0;
-			perpendicularDirection.y = 0;
-
-			if (keyState[GLFW_KEY_W])
-				movementDirection += glm::normalize(lookDirection);
-			if (keyState[GLFW_KEY_S])
-				movementDirection -= glm::normalize(lookDirection);
-			if (keyState[GLFW_KEY_A])
-				movementDirection -= glm::normalize(perpendicularDirection);
-			if (keyState[GLFW_KEY_D])
-				movementDirection += glm::normalize(perpendicularDirection);
-
-			if (movementDirection != glm::vec4(0.0f, 0.0f, 0.0f, 0.0f))
-			{
-				glm::vec4 playerPos = this->player->getTransform().getWorldPosition();
-				movementDirection = glm::normalize(movementDirection);
-				this->player->getTransform().setWorldPosition(
-					this->getNewPositionForMovement(playerPos, movementDirection, deltaTime, movementSpeed));
-			}
-		}
-	}
-
-	float mod = 1;
-
-	if (keyState[GLFW_KEY_R])
-		mod = 0.1f;
-
-	if (keyState[GLFW_KEY_X] && !keyState[GLFW_KEY_Q])
-		x += mod * 0.01f;
-	if (keyState[GLFW_KEY_Y] && !keyState[GLFW_KEY_Q])
-		y += mod * 0.01f;
-	if (keyState[GLFW_KEY_Z] && !keyState[GLFW_KEY_Q])
-		z += mod * 0.01f;
-	if (keyState[GLFW_KEY_X] && keyState[GLFW_KEY_Q])
-		x -= mod * 0.01f;
-	if (keyState[GLFW_KEY_Y] && keyState[GLFW_KEY_Q])
-		y -= mod * 0.01f;
-	if (keyState[GLFW_KEY_Z] && keyState[GLFW_KEY_Q])
-		z -= mod * 0.01f;
-
-	if (keyState[GLFW_KEY_1] && !keyState[GLFW_KEY_Q])
-		xx += 0.01f;
-	if (keyState[GLFW_KEY_2] && !keyState[GLFW_KEY_Q])
-		yy += 0.01f;
-	if (keyState[GLFW_KEY_3] && !keyState[GLFW_KEY_Q])
-		zz += 0.01f;
-	if (keyState[GLFW_KEY_1] && keyState[GLFW_KEY_Q])
-		xx -= 0.01f;
-	if (keyState[GLFW_KEY_2] && keyState[GLFW_KEY_Q])
-		yy -= 0.01f;
-	if (keyState[GLFW_KEY_3] && keyState[GLFW_KEY_Q])
-		zz -= 0.01f;
-
+	// Toggle Normal Map
 	if (keyState[GLFW_KEY_N])
 	{
 		this->useNormalMap = !this->useNormalMap;
 		keyState[GLFW_KEY_N] = false;					// Force false to only compute one time.
 	}
 
+	// Change camera
 	if (keyState[GLFW_KEY_C])
 	{
 		switch (this->selectedCamera)
@@ -730,29 +619,88 @@ void Game::processInput(bool* keyState, float deltaTime)
 		keyState[GLFW_KEY_C] = false;					// Force false to only compute one time.
 	}
 
-	if (keyState[GLFW_KEY_B])
-	{
-		shaderType = raw::ShaderType::BASIC;
-		keyState[GLFW_KEY_B] = false;					// Force false to only compute one time.
-	}
-	if (keyState[GLFW_KEY_F])
-	{
-		shaderType = raw::ShaderType::FLAT;
-		keyState[GLFW_KEY_F] = false;					// Force false to only compute one time.
-	}
-	if (keyState[GLFW_KEY_G])
-	{
-		shaderType = raw::ShaderType::GOURAD;
-		keyState[GLFW_KEY_G] = false;					// Force false to only compute one time.
-	}
+	// Change Shader
 	if (keyState[GLFW_KEY_P])
 	{
-		shaderType = raw::ShaderType::PHONG;
+		switch (shaderType)
+		{
+		case ShaderType::BASIC:
+			this->shaderType = ShaderType::FIXED; break;
+		case ShaderType::FIXED:
+			this->shaderType = ShaderType::FLAT; break;
+		case ShaderType::FLAT:
+			this->shaderType = ShaderType::GOURAD; break;
+		case ShaderType::GOURAD:
+			this->shaderType = ShaderType::PHONG; break;
+		case ShaderType::PHONG:
+			this->shaderType = ShaderType::SKYBOX; break;
+		case ShaderType::SKYBOX:
+			this->shaderType = ShaderType::TEXTURE; break;
+		case ShaderType::TEXTURE:
+			this->shaderType = ShaderType::BASIC; break;
+		}
+
 		keyState[GLFW_KEY_P] = false;					// Force false to only compute one time.
 	}
-	if (keyState[GLFW_KEY_T])
+
+	// Change Projection Type
+	if (keyState[GLFW_KEY_O])
 	{
-		shaderType = raw::ShaderType::TEXTURE;
-		keyState[GLFW_KEY_T] = false;					// Force false to only compute one time.
+		this->useOrthoCamera = !this->useOrthoCamera;
+		keyState[GLFW_KEY_O] = false;					// Force false to only compute one time.
+	}
+}
+
+// This function will check which keys are pressed and which camera is selected and will move cameras and players.
+void Game::movePlayerAndCamerasBasedOnInput(bool* keyState, float deltaTime)
+{
+	static const float freeCameraSpeed = 5.0f;
+	static const float playerSpeed = 3.5f;
+
+	glm::vec4 lookDirection;
+	glm::vec4 perpendicularDirection;
+
+	if (this->selectedCamera == CameraType::FREE)
+	{
+		lookDirection = freeCamera->getViewVector();
+		perpendicularDirection = freeCamera->getXAxis();
+	}
+	else
+	{
+		lookDirection = player->getLookDirection();
+		perpendicularDirection = player->getPerpendicularDirection();
+
+		// Y coordinate must be ignored, since player can't fly.
+		lookDirection.y = 0;
+		perpendicularDirection.y = 0;
+	}
+
+	glm::vec4 movementDirection = glm::vec4(0.0f, 0.0f, 0.0f, 0.0f);
+
+	if (keyState[GLFW_KEY_W])
+		movementDirection += glm::normalize(lookDirection);
+	if (keyState[GLFW_KEY_S])
+		movementDirection -= glm::normalize(lookDirection);
+	if (keyState[GLFW_KEY_A])
+		movementDirection -= glm::normalize(perpendicularDirection);
+	if (keyState[GLFW_KEY_D])
+		movementDirection += glm::normalize(perpendicularDirection);
+
+	if (movementDirection != glm::vec4(0.0f, 0.0f, 0.0f, 0.0f))
+	{
+		glm::vec4 playerPos = this->player->getTransform().getWorldPosition();
+		movementDirection = glm::normalize(movementDirection);
+
+		if (this->selectedCamera == CameraType::FREE)
+		{
+			freeCamera->setPosition(freeCamera->getPosition() + deltaTime * freeCameraSpeed * movementDirection);
+		}
+		else
+		{
+			glm::vec4 playerNewPos = this->getNewPositionForMovement(playerPos, movementDirection,
+				deltaTime, playerSpeed);
+
+			this->player->getTransform().setWorldPosition(playerNewPos);
+		}
 	}
 }

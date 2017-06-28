@@ -78,6 +78,9 @@
     <ClCompile Include="src\SkyBox.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="src\Collision.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <None Include="shaders\BasicShader.fs" />
@@ -93,6 +96,8 @@
     <None Include="shaders\FixedShader.vs" />
     <None Include="shaders\TextureShader.fs" />
     <None Include="shaders\TextureShader.vs" />
+    <None Include="shaders\SkyboxShader.fs" />
+    <None Include="shaders\SkyboxShader.vs" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\Camera.h">
@@ -153,6 +158,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="src\Skybox.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Collision.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

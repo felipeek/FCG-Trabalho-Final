@@ -32,7 +32,14 @@ void glfwCursorCallback(GLFWwindow* window, double xPos, double yPos)
 
 void glfwMouseButtonCallback(GLFWwindow* window, int button, int action, int mods)
 {
-	game->processMouseClick(button, action);	
+	if (game)
+		game->processMouseClick(button, action);	
+}
+
+void glfwScrollCallback(GLFWwindow* window, double xOffset, double yOffset)
+{
+	if (game)
+		game->processScrollChange(xOffset, yOffset);
 }
 
 GLFWwindow* initGlfw()
@@ -47,6 +54,7 @@ GLFWwindow* initGlfw()
 	glfwSetKeyCallback(window, glfwKeyCallback);
 	glfwSetCursorPosCallback(window, glfwCursorCallback);
 	glfwSetMouseButtonCallback(window, glfwMouseButtonCallback);
+	glfwSetScrollCallback(window, glfwScrollCallback);
 	glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
 
 	return window;
@@ -69,7 +77,7 @@ int main()
 
 	game = new raw::Game();
 
-	game->init(false);
+	game->init(true);
 
 	glEnable(GL_DEPTH_TEST);
 	glLineWidth(10);

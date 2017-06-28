@@ -22,20 +22,21 @@ namespace raw
 		float getYaw() const;
 		void setWindowHeight(unsigned int windowHeight);
 		void setWindowWidth(unsigned int windowWidth);
-		void setFieldOfView(float fov);
 		void setNearPlane(float nearPlane);
+		float getNearPlane() const;
 		void setFarPlane(float farPlane);
+		float getFarPlane() const;
 		glm::vec4 getXAxis() const;
 		glm::vec4 getYAxis() const;
 		glm::vec4 getZAxis() const;
 		const glm::mat4& getViewMatrix() const;
-		const glm::mat4& getProjectionMatrix() const;
-	private:
+		virtual const glm::mat4& getProjectionMatrix() const = 0;
+	protected:
 		void recalculateView();
 		void recalculateAngles();
 		void truncateAngles();
 		void recalculateViewMatrix();
-		void recalculateProjectionMatrix();
+		virtual void recalculateProjectionMatrix() = 0;
 		glm::vec4 position;
 		glm::vec4 up;
 		glm::vec4 view;
@@ -43,13 +44,40 @@ namespace raw
 		float yaw;
 		unsigned int windowHeight;
 		unsigned int windowWidth;
-		float fov;
 		float nearPlane;
 		float farPlane;
 		glm::vec4 xAxis;
 		glm::vec4 yAxis;
 		glm::vec4 zAxis;
 		glm::mat4 viewMatrix;
+	};
+
+	class PerspectiveCamera : public Camera
+	{
+	public:
+		PerspectiveCamera(glm::vec4 position, glm::vec4 up, glm::vec4 view);
+		PerspectiveCamera();
+		~PerspectiveCamera();
+		void setFieldOfView(float fov);
+		virtual const glm::mat4& getProjectionMatrix() const;
+	protected:
+		virtual void recalculateProjectionMatrix();
+		float fov;
+		glm::mat4 projectionMatrix;
+	};
+
+	class OrthographicCamera : public Camera
+	{
+	public:
+		OrthographicCamera(glm::vec4 position, glm::vec4 up, glm::vec4 view);
+		OrthographicCamera();
+		~OrthographicCamera();
+		void setOrthoRange(float range);
+		float getOrthoRange();
+		virtual const glm::mat4& getProjectionMatrix() const;
+	protected:
+		virtual void recalculateProjectionMatrix();
+		float orthoRange;
 		glm::mat4 projectionMatrix;
 	};
 }

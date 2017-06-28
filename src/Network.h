@@ -15,7 +15,7 @@ namespace raw
 		~Network();
 		void sendPlayerInformation(const Player& player);
 		void sendPlayerFireAnimation();
-		void sendPlayerFireHit();
+		void sendPlayerFireHitAndAnimation(int damage);
 		void receiveAndProcessPackets();
 	private:
 		void processPlayerInformationPacket(char* buffer);

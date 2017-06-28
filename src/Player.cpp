@@ -1,96 +1,132 @@
 #include "Player.h"
 #include "Model.h"
 #include "StaticModels.h"
-#include "GLFW\glfw3.h"
+#include "Collision.h"
 #include "Entity.h"
+#include "Network.h"
+
+#include <GLFW\glfw3.h>
 
 using namespace raw;
 
-extern int windowWidth;
-extern int windowHeight;
-
-//void render_vector(vec3 vec, vec3 position, const Shader& shader)
-//{
-//	mat4 ident;
-//	mat4::identity(ident);
-//	glUniformMatrix4fv(glGetUniformLocation(shader.getProgram(), "modelMatrix"), 1, GL_TRUE, (float*)ident.data);
-//	glBegin(GL_LINES);
-//	glVertex3f(position.x, position.y, position.z);
-//	glVertex3f(vec.x + position.x, vec.y + position.y, vec.z + position.z);
-//	glEnd();
-//}
-
+// Create player
 Player::Player(Model* model) : Entity(model)
 {
+	// Set initial HP and initial position
 	this->hp = initialHp;
 	glm::vec4 initialPosition = glm::vec4(1.7f, 0.0f, 1.7f, 1.0f);
 	this->getTransform().setWorldPosition(initialPosition);
 
-	this->initCamera();
-	this->initBoundingBox();
+	// Create player camera
+	this->createCamera();
+
+	// Create player bounding box
+	this->createBoundingBox();
+
+	// Create player gun
 	this->createGun();
+
+	// Create player aim
 	this->createAim();
+
+	// Create shot mark model
+	std::vector<Mesh*> shotMarkModelMeshes;
+	shotMarkModelMeshes.push_back(StaticModels::getCubeMesh(0.02f, 0, 0, 0, 0));
+	this->shotMarkModel = new Model(shotMarkModelMeshes);
+
+	// Create damage animation
+	const float damageAnimationScale = 2.0f;
+	Texture* damageAnimationTexture = Texture::load(".\\res\\art\\damage.png");
+	this->damageAnimationEntity = new Entity(new Model(std::vector<Mesh*>({new Quad(damageAnimationTexture)})));
+	this->damageAnimationEntity->getTransform().setWorldScale(glm::vec3(damageAnimationScale,
+		damageAnimationScale, damageAnimationScale));
+
+	// Update player
 	this->update();
 }
 
-Player::Player(Model* model, Transform& transform) : Entity(model, transform)
-{
-	this->hp = initialHp;
-	glm::vec4 initialPosition = glm::vec4(1.7f, 0.0f, 1.7f, 1.0f);
-	this->getTransform().setWorldPosition(initialPosition);
-
-	this->initCamera();
-	this->initBoundingBox();
-	this->createGun();
-	this->createAim();
-	this->update();
-}
-
+// Delete player
 Player::~Player()
 {
+	// Delete camera
+	delete this->camera;
+
+	// Delete bounding box entity and model
 	delete this->boundingBoxEntity;
 	delete this->boundingBoxModel;
+
+	// Free bounding box vertices that are allocated in BoundingShapes.
 	for (unsigned int i = 0; i < this->boundingBoxInModelCoordinates.size(); ++i)
 		free(this->boundingBoxInModelCoordinates[i].vertices);
 	for (unsigned int i = 0; i < this->boundingBoxInModelCoordinates.size(); ++i)
 		free(this->boundingBoxInWorldCoordinates[i].vertices);
 
+	// Delete gun model and entity
 	delete this->gun->getModel();
-	free(this->gun);
+	delete this->gun;
 	
+	// Delete aim model and entity
 	delete this->aim->getModel();
 	delete this->aim;
 
+	// Delete first person gun model and entity
 	delete this->firstPersonGun->getModel();
 	delete this->firstPersonGun;
-
 	delete this->firstPersonGunFiring->getModel();
 	delete this->firstPersonGunFiring;
+
+	// Delete shot mark model
+	delete this->shotMarkModel;
+
+	// Destroy Shot Marks
+	for (unsigned int i = 0; i < this->shotMarks.size(); ++i)
+		delete this->shotMarks[i];
+
+	// Delete damage animation model and entity
+	delete this->damageAnimationEntity->getModel();
+	delete this->damageAnimationEntity;
 }
 
-void Player::initBoundingBox()
+// Create player bounding box
+// This function will create two vectors of BoundingShapes. These vectors of bounding shapes will contain
+// all vertices of the bounding box and they will be used when calling GJK collisions functions. The space for the
+// vertices must be allocated. The first vector will contain the vertices in model coordinates, while the second one
+// will contain them in world coordinates. However, this function will only fill the model coordinates vector, and will
+// just allocate the world coordinates vector. This is done this way because the world coordinate vertices might change
+// so they will be update whenever necessary (ie, whenever they are accessed by the program later).
+// This function will also create a Bounding Box Entity, based on the loaded model. This is just to make it possible
+// to render the bounding box with the player whenever necessary.
+void Player::createBoundingBox()
 {
+	// Load player bounding box model
 	this->boundingBoxModel = new Model(".\\res\\art\\carinhaloko\\carinhaloko_bb.obj");
+
+	// Get bounding box meshes
 	std::vector<Mesh*> boundingBoxMeshes = this->boundingBoxModel->getMeshes();
+
+	// Create bounding box entity and transform
 	this->boundingBoxEntity = new Entity(this->boundingBoxModel);
 	this->boundingBoxEntity->getTransform().setWorldPosition(this->getTransform().getWorldPosition());
 	this->boundingBoxEntity->getTransform().setWorldRotation(this->getTransform().getWorldRotation());
 	this->boundingBoxEntity->getTransform().setWorldScale(this->getTransform().getWorldScale());
-	for (unsigned int i = 0; i < this->boundingBoxEntity->getModel()->getMeshes().size(); ++i)
-		this->boundingBoxEntity->getModel()->getMeshes()[i]->setRenderMode(MeshRenderMode::LINES);
 
+	// Iterate over bounding box meshes
 	for (unsigned int i = 0; i < boundingBoxMeshes.size(); ++i)
 	{
+		// Get mesh vertices
 		const std::vector<Vertex>& vertices = boundingBoxMeshes[i]->getVertices();
 
+		// Allocate bounding shape vertices space (model coords)
 		BoundingShape boundingBoxModelCoords;
 		boundingBoxModelCoords.vertices = (vec3*)malloc(vertices.size() * sizeof(vec3));
 		boundingBoxModelCoords.num_vertices = vertices.size();
 
+		// Allocate bounding shape vertices space (world coords)
 		BoundingShape boundingBoxWorldCoords;
 		boundingBoxWorldCoords.vertices = (vec3*)malloc(vertices.size() * sizeof(vec3));
 		boundingBoxWorldCoords.num_vertices = vertices.size();
 
+		// Fill bounding shape with vertices (model coords)
 		for (unsigned int j = 0; j < vertices.size(); ++j)
 		{
 			vec3 aux;
@@ -100,20 +136,22 @@ void Player::initBoundingBox()
 			boundingBoxModelCoords.vertices[j] = aux;
 		}
 
+		// Push bounding boxes (world coordinates just allocaed, not initialized).
 		this->boundingBoxInModelCoordinates.push_back(boundingBoxModelCoords);
-		// ! bounding box in world coordinates are not being initialized.
 		this->boundingBoxInWorldCoordinates.push_back(boundingBoxWorldCoords);
 	}
 }
 
-void Player::initCamera()
+// Create player camera
+void Player::createCamera()
 {
 	glm::vec4 position = this->getTransform().getWorldPosition();
 	glm::vec4 upVector = glm::vec4(0.0f, 1.0f, 0.0f, 0.0f);
 	glm::vec4 viewVector = glm::vec4(0.0f, 0.0f, -1.0f, 0.0f);
-	this->camera = Camera(position, upVector, viewVector);
+	this->camera = new PerspectiveCamera(position, upVector, viewVector);
 }
 
+// Create player gun model and entity
 void Player::createGun()
 {
 	Model* gunModel = new Model(".\\res\\art\\gun\\Handgun_obj.obj");
@@ -138,55 +176,73 @@ void Player::createGun()
 	this->gun->getTransform().setPreTransform(preTransform);
 }
 
+// Create player aim
 void Player::createAim()
 {
+	// Create aim model and entity
+	const static float aimScalement = 0.1f;
 	Mesh* aimMesh = new Quad(Texture::load(".\\res\\art\\aim4.png"));
 	Model* aimModel = new Model(std::vector<Mesh*>({ aimMesh }));
 	this->aim = new Entity(aimModel);
+	this->aim->getTransform().setWorldScale(glm::vec3(aimScalement, aimScalement, aimScalement));
 
-	this->setIsFireAnimationOn(false);
-	this->fireTime = 0;
+	// Set fire animation off
+	this->setIsShootingAnimationOn(false);
+	this->shootingAnimationTime = 0;
 
+	// Create first person gun model and entity
 	Mesh* firstPersonGunMesh = new Quad(Texture::load(".\\res\\art\\gun_tex.png"));
 	Model* firstPersonGunModel = new Model(std::vector<Mesh*>({ firstPersonGunMesh }));
 	this->firstPersonGun = new Entity(firstPersonGunModel);
 
+	// Create first person gun (firing) model and entity
 	Mesh* firstPersonGunFiringMesh = new Quad(Texture::load(".\\res\\art\\gun_tex_f.png"));
 	Model* firstPersonGunFiringModel = new Model(std::vector<Mesh*>({ firstPersonGunFiringMesh }));
 	this->firstPersonGunFiring = new Entity(firstPersonGunFiringModel);
 }
 
-const Camera& Player::getCamera() const
+Camera* Player::getCamera()
 {
 	return this->camera;
 }
 
-void Player::render(const Shader& shader, const Camera& camera, const std::vector<Light*>& lights, bool useNormalMap) const
+// Render all shotmarks
+void Player::renderShotMarks(const Shader& shader, const Camera& camera) const
 {
-	Entity::render(shader, camera, lights, useNormalMap);
+	for (unsigned int i = 0; i < this->shotMarks.size(); ++i)
+		this->shotMarks[i]->render(shader, camera);
 }
 
+// Render gun
 void Player::renderGun(const Shader& shader, const Camera& camera, const std::vector<Light*>& lights, bool useNormalMap) const
 {
 	this->gun->render(shader, camera, lights, useNormalMap);
 }
 
-void Player::renderAim(const Shader& shader) const
+// Render aim and first person gun
+// These are just textures that will be rendered in the middle of the screen by a special shader.
+// Blend should be activated and depth test disabled, otherwise they may conflict.
+void Player::renderScreenImages(const Shader& shader) const
 {
 	glDisable(GL_DEPTH_TEST);
 	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 	glEnable(GL_BLEND);
 
 	this->aim->render(shader);
-	if (this->isFireAnimationOn)
+
+	if (this->isShootingAnimationOn)
 		this->firstPersonGunFiring->render(shader);
 	else
 		this->firstPersonGun->render(shader);
+
+	if (this->isDamageAnimationOn)
+		this->damageAnimationEntity->render(shader);
 
 	glDisable(GL_BLEND);
 	glEnable(GL_DEPTH_TEST);
 }
 
+// Update player
 void Player::update()
 {
 	glm::vec4 playerPosition = this->getTransform().getWorldPosition();
@@ -194,11 +250,11 @@ void Player::update()
 	// Refresh camera's position
 	const float cameraHeight = 0.6f;
 	glm::vec4 cameraPosition = playerPosition;
-	playerPosition.y = cameraHeight;
-	this->camera.setPosition(playerPosition);
+	cameraPosition.y = cameraHeight;
+	this->camera->setPosition(cameraPosition);
 
 	// Refresh model rotation
-	glm::vec4 lookDirection = glm::normalize(this->camera.getViewVector());
+	glm::vec4 lookDirection = glm::normalize(this->camera->getViewVector());
 	const static glm::vec4 initialLookDirection = glm::vec4(0.0f, 0.0f, -1.0f, 0.0f);
 	glm::vec2 vecA = glm::normalize(glm::vec2(lookDirection.x, lookDirection.z));
 	glm::vec2 vecB = glm::normalize(glm::vec2(initialLookDirection.x, initialLookDirection.z));
@@ -210,119 +266,202 @@ void Player::update()
 	//this->gun->getTransform().setWorldRotation(glm::vec3(this->camera.getYaw(), this->camera.getPitch(), 0));
 	this->gun->getTransform().setWorldRotation(glm::vec3(0.0f, -modelRotation, 0.0f));
 
-	// Refresh aim scalement based on window's size
-	const static float aimScalement = 0.1f;
-	float windowRatio = (float)windowHeight / (float)windowWidth;
-	this->aim->getTransform().setWorldScale(glm::vec3(aimScalement * windowRatio, aimScalement, 0.0f));
-
 	// Refresh fire animation
-	if (this->isFireAnimationOn)
+	if (this->isShootingAnimationOn)
 	{
 		double currentTime = glfwGetTime();
 
-		if (currentTime > this->fireTime + fireAnimationTime)
-			this->setIsFireAnimationOn(false);
+		if (currentTime > this->shootingAnimationTime + shootingAnimationTotalTime)
+			this->setIsShootingAnimationOn(false);
+	}
+
+	// Refresh damage animation
+	if (this->isDamageAnimationOn)
+	{
+		double currentTime = glfwGetTime();
+
+		if (currentTime > this->damageAnimationTime + damageAnimationTotalTime)
+			this->setIsDamageAnimationOn(false);
 	}
 
 	// Refresh bouding box entity
 	this->boundingBoxEntity->getTransform().setWorldPosition(this->getTransform().getWorldPosition());
 	this->boundingBoxEntity->getTransform().setWorldRotation(this->getTransform().getWorldRotation());
 	this->boundingBoxEntity->getTransform().setWorldScale(this->getTransform().getWorldScale());
+
+	// Check if player is dead
+	if (this->hp <= 0)
+	{
+		// Player is dead. @TODO
+		// @TEMPORARY?
+		this->getTransform().setWorldPosition(glm::vec4(1.7f, 0.0f, 1.7f, 1.0f));
+		this->setHp(this->initialHp);
+	}
 }
 
-void Player::fire()
+// Shoot, test collisions with second player and map walls.
+// If network is not null, this function will also send collision information to the second player (multiplayer mode)
+void Player::shoot(Player* secondPlayer, const std::vector<MapWallDescriptor>& mapWallDescriptors, Network* network)
 {
-	this->setIsFireAnimationOn(true);
-	this->fireTime = glfwGetTime();
+	// Ray attributes
+	glm::vec4 rayPosition = this->camera->getPosition();
+	glm::vec4 rayDirection = this->camera->getViewVector();
+	glm::vec4 rayXAxis = this->camera->getXAxis();
+	glm::vec4 rayYAxis = this->camera->getYAxis();
+
+	// Test collision with second Player
+	PlayerCollisionDescriptor playerCollisionDescriptor = Collision::isRayCollidingWithBoundingBox(rayPosition,
+		rayDirection, rayXAxis, rayYAxis, secondPlayer->getBoundingBoxInWorldCoordinates());
+
+	// Test collision with map walls
+	CollisionDescriptor mapWallsCollisionDescriptor = Collision::getClosestWallRayIsColliding(rayPosition, 
+		rayDirection, mapWallDescriptors);
+
+	// If there was a collision with second player AND a wall
+	if (playerCollisionDescriptor.collision.collide && mapWallsCollisionDescriptor.collide)
+	{
+		// Check closer collision - wall or player?
+		glm::vec4 secondPlayerCollisionPosition = secondPlayer->getTransform().getWorldPosition();	// Approximation
+		glm::vec4 wallCollisionPosition = mapWallsCollisionDescriptor.worldPosition;
+
+		float distancePlayerToPlayer = glm::length(rayPosition - secondPlayerCollisionPosition);
+		float distancePlayerToWall = glm::length(rayPosition - wallCollisionPosition);
+
+		if (distancePlayerToPlayer < distancePlayerToWall)
+		{
+			// Player is closer
+			int damage = secondPlayer->damage(playerCollisionDescriptor.bodyPart);
+			secondPlayer->startDamageAnimation();
+
+			// If a network was received, send the collision information to the second player
+			// Note: This packet will also send a fire animation! There is no need to send a fire animation packet
+			if (network)
+				network->sendPlayerFireHitAndAnimation(damage);
+		}
+		else
+		{
+			// Wall is Closer
+			this->createShotMark(mapWallsCollisionDescriptor.worldPosition);
+
+			// If a network was received, send just a fire animation to second player
+			if (network)
+				network->sendPlayerFireAnimation();
+		}
+	}
+	// If there was a collision with second player only
+	if (playerCollisionDescriptor.collision.collide && !mapWallsCollisionDescriptor.collide)
+	{
+		int damage = secondPlayer->damage(playerCollisionDescriptor.bodyPart);
+
+		// If a network was received, send the collision information to the second player
+		// Note: This packet will also send a fire animation! There is no need to send a fire animation packet
+		if (network)
+			network->sendPlayerFireHitAndAnimation(damage);
+	}
+	// If there was a collision with wall only
+	if (!playerCollisionDescriptor.collision.collide && mapWallsCollisionDescriptor.collide)
+	{
+		this->createShotMark(mapWallsCollisionDescriptor.worldPosition);
+
+		// If a network was received, send just a fire animation to second player
+		if (network)
+			network->sendPlayerFireAnimation();
+	}
+	// If there was no collision
+	else
+	{
+		// If a network was received, send just a fire animation to second player
+		if (network)
+			network->sendPlayerFireAnimation();
+	}
 }
 
-void Player::changeLookDirection(float xDifference, float yDifference)
+// Shoot, test collisions with second player and map walls.
+// This is offline mode, secondPlayer should probably be a bot or something
+void Player::shoot(Player* secondPlayer, const std::vector<MapWallDescriptor>& mapWallDescriptors)
 {
-	static const float cameraMouseSpeed = 0.01f;
-
-	this->camera.incPitch(-cameraMouseSpeed * (float)xDifference);
-	this->camera.incYaw(cameraMouseSpeed * (float)yDifference);
+	this->shoot(secondPlayer, mapWallDescriptors, 0);
 }
 
+// Shoot, test collisions with map walls only.
+void Player::shoot(const std::vector<MapWallDescriptor>& mapWallDescriptors)
+{
+	// Ray attributes
+	glm::vec4 rayPosition = this->camera->getPosition();
+	glm::vec4 rayDirection = this->camera->getViewVector();
+
+	// Test collision with map walls
+	CollisionDescriptor mapWallsCollisionDescriptor = Collision::getClosestWallRayIsColliding(rayPosition,
+		rayDirection, mapWallDescriptors);
+
+	// If there was a collision
+	if (mapWallsCollisionDescriptor.collide)
+		this->createShotMark(mapWallsCollisionDescriptor.worldPosition);
+}
+
+// Start the shooting animation
+void Player::startShootingAnimation()
+{
+	this->setIsShootingAnimationOn(true);
+	this->shootingAnimationTime = glfwGetTime();
+}
+
+// Start the damage animation
+void Player::startDamageAnimation()
+{
+	this->setIsDamageAnimationOn(true);
+	this->damageAnimationTime = glfwGetTime();
+}
+
+// Change player look direction
+void Player::changeLookDirection(float xDifference, float yDifference, float speed)
+{
+	this->camera->incPitch(-speed * (float)xDifference);
+	this->camera->incYaw(speed * (float)yDifference);
+}
+
+// Change player look direction
 void Player::changeLookDirection(const glm::vec4& lookDirection)
 {
-	this->camera.setViewVector(lookDirection);
+	this->camera->setViewVector(lookDirection);
 }
 
 glm::vec4 Player::getLookDirection() const
 {
-	return this->camera.getViewVector();
+	return this->camera->getViewVector();
 }
 
 glm::vec4 Player::getPerpendicularDirection() const
 {
-	return this->camera.getXAxis();
+	return this->camera->getXAxis();
 }
 
-void Player::setIsFireAnimationOn(bool isFireAnimationOn)
+// Set if shooting animation is on. Hide/unhide animation mesh accordingly.
+void Player::setIsShootingAnimationOn(bool isShootingAnimationOn)
 {
-	this->isFireAnimationOn = isFireAnimationOn;
-	this->gun->getModel()->getMeshes()[5]->setVisible(isFireAnimationOn);
+	this->isShootingAnimationOn = isShootingAnimationOn;
+	this->gun->getModel()->getMeshes()[5]->setVisible(isShootingAnimationOn);
 }
 
-PlayerCollision Player::isViewRayCollidingWith(Player* player) const
+void Player::setIsDamageAnimationOn(bool isDamageAnimationOn)
 {
-	std::vector<BoundingShape>& playerBoundingBox = player->getBoundingBoxInWorldCoordinates();
-
-	// Create View Ray Bounding Shape
-	BoundingShape viewRayBoundingShape;
-
-	vec3 viewRayVertices[8];
-
-	glm::vec4 rayPosition = this->camera.getPosition();
-	glm::vec4 rayDirection = glm::normalize(this->camera.getViewVector());
-	float epsilon = 0.0001f;
-	float rayLength = 30.0f;
-
-	glm::vec4 xAxis = glm::normalize(this->camera.getXAxis());
-	glm::vec4 yAxis = glm::normalize(this->camera.getYAxis());
-
-	glm::vec4 prismVertices[8];
-
-	prismVertices[0] = rayPosition + (0.0f * rayDirection - epsilon * xAxis - epsilon * yAxis);
-	prismVertices[1] = rayPosition + (0.0f * rayDirection - epsilon * xAxis + epsilon * yAxis);
-	prismVertices[2] = rayPosition + (0.0f * rayDirection + epsilon * xAxis - epsilon * yAxis);
-	prismVertices[3] = rayPosition + (0.0f * rayDirection + epsilon * xAxis + epsilon * yAxis);
-	prismVertices[4] = rayPosition + (rayLength * rayDirection - epsilon * xAxis - epsilon * yAxis);
-	prismVertices[5] = rayPosition + (rayLength * rayDirection - epsilon * xAxis + epsilon * yAxis);
-	prismVertices[6] = rayPosition + (rayLength * rayDirection + epsilon * xAxis - epsilon * yAxis);
-	prismVertices[7] = rayPosition + (rayLength * rayDirection + epsilon * xAxis + epsilon * yAxis);
-
-	viewRayVertices[0] = vec3(prismVertices[0].x, prismVertices[0].y, prismVertices[0].z);
-	viewRayVertices[1] = vec3(prismVertices[1].x, prismVertices[1].y, prismVertices[1].z);
-	viewRayVertices[2] = vec3(prismVertices[2].x, prismVertices[2].y, prismVertices[2].z);
-	viewRayVertices[3] = vec3(prismVertices[3].x, prismVertices[3].y, prismVertices[3].z);
-	viewRayVertices[4] = vec3(prismVertices[4].x, prismVertices[4].y, prismVertices[4].z);
-	viewRayVertices[5] = vec3(prismVertices[5].x, prismVertices[5].y, prismVertices[5].z);
-	viewRayVertices[6] = vec3(prismVertices[6].x, prismVertices[6].y, prismVertices[6].z);
-	viewRayVertices[7] = vec3(prismVertices[7].x, prismVertices[7].y, prismVertices[7].z);
-
-	viewRayBoundingShape.vertices = viewRayVertices;
-	viewRayBoundingShape.num_vertices = 8;
-
-	// @TODO: check which part is closer to the fire to avoid bugs!!
-	for (unsigned int i = 0; i < playerBoundingBox.size(); ++i)
-		if (gjk_collides(&playerBoundingBox[i], &viewRayBoundingShape))
-			return this->getCollisionBodyPart(i);
-
-	return PlayerCollision::NONE;
+	this->isDamageAnimationOn = isDamageAnimationOn;
 }
 
-std::vector<BoundingShape>& Player::getBoundingBoxInModelCoordinates()
+// Get player bounding box in model coordinates. Always static.
+const std::vector<BoundingShape>& Player::getBoundingBoxInModelCoordinates() const
 {
 	return this->boundingBoxInModelCoordinates;
 }
 
+// Get player bounding box in world coordinates. Dynamic, might change as player moves.
 std::vector<BoundingShape>& Player::getBoundingBoxInWorldCoordinates()
 {
 	mat4 modelMatrix;
 	glm::mat4 m;
 
+	// For each boundingShape in model coordinates, multiply vertices by the model matrix by calling
+	// transform_shape and passing the matrix. Store the result in boundingBoxInWorldCoordinates vector.
 	for (unsigned int i = 0; i < this->boundingBoxInModelCoordinates.size(); ++i)
 	{
 		m = glm::transpose(this->boundingBoxEntity->getTransform().getModelMatrix());
@@ -331,31 +470,32 @@ std::vector<BoundingShape>& Player::getBoundingBoxInWorldCoordinates()
 		transform_shape(&this->boundingBoxInModelCoordinates[i], &this->boundingBoxInWorldCoordinates[i], modelMatrix);
 	}
 
+	// Return the bounding box in world coords.
 	return this->boundingBoxInWorldCoordinates;
 }
 
-PlayerCollision Player::getCollisionBodyPart(unsigned int boundingBoxVectorIndex) const
+// This function receives an index identifying a bounding box mesh and returns the body part related.
+PlayerBodyPart Player::getBoundingBoxBodyPart(unsigned int boundingBoxVectorIndex)
 {
 	// HARDCODED!
 	switch (boundingBoxVectorIndex)
 	{
-	case 0: return PlayerCollision::TORSO;
-	case 1: return PlayerCollision::HEAD;
-	case 2: return PlayerCollision::RIGHTTHIGH;
-	case 3: return PlayerCollision::LEFTTHIGH;
-	case 4: return PlayerCollision::RIGHTSHIN;
-	case 5: return PlayerCollision::LEFTSHIN;
-	case 6: return PlayerCollision::LEFTFOOT;
-	case 7: return PlayerCollision::RIGHTFOOT;
-	case 8: return PlayerCollision::UPPERLEFTARM;
-	case 9: return PlayerCollision::LOWERLEFTARM;
-	case 10: return PlayerCollision::UPPERRIGHTARM;
-	case 11: return PlayerCollision::LOWERRIGHTARM;
-	case 12: return PlayerCollision::RIGHTHAND;
-	case 13: return PlayerCollision::LEFTHAND;
+	default:
+	case 0: return PlayerBodyPart::TORSO;
+	case 1: return PlayerBodyPart::HEAD;
+	case 2: return PlayerBodyPart::RIGHTTHIGH;
+	case 3: return PlayerBodyPart::LEFTTHIGH;
+	case 4: return PlayerBodyPart::RIGHTSHIN;
+	case 5: return PlayerBodyPart::LEFTSHIN;
+	case 6: return PlayerBodyPart::LEFTFOOT;
+	case 7: return PlayerBodyPart::RIGHTFOOT;
+	case 8: return PlayerBodyPart::UPPERLEFTARM;
+	case 9: return PlayerBodyPart::LOWERLEFTARM;
+	case 10: return PlayerBodyPart::UPPERRIGHTARM;
+	case 11: return PlayerBodyPart::LOWERRIGHTARM;
+	case 12: return PlayerBodyPart::RIGHTHAND;
+	case 13: return PlayerBodyPart::LEFTHAND;
 	}
-
-	return PlayerCollision::NONE;
 }
 
 int Player::getHp() const
@@ -374,4 +514,44 @@ void Player::removeHp(int damage)
 
 	if (this->hp < 0)
 		this->hp = 0;
+}
+
+// Damage player. Value is decided based on the hit body part.
+// Also, returns the damage.
+int Player::damage(PlayerBodyPart bodyPart)
+{
+	switch (bodyPart)
+	{
+	case PlayerBodyPart::HEAD:
+		this->removeHp(60);
+		return 60;
+	case PlayerBodyPart::TORSO:
+		this->removeHp(30);
+		return 30;
+	case PlayerBodyPart::UPPERRIGHTARM:
+	case PlayerBodyPart::LOWERRIGHTARM:
+	case PlayerBodyPart::UPPERLEFTARM:
+	case PlayerBodyPart::LOWERLEFTARM:
+	case PlayerBodyPart::RIGHTHAND:
+	case PlayerBodyPart::LEFTHAND:
+		this->removeHp(16);
+		return 16;
+	case PlayerBodyPart::RIGHTTHIGH:
+	case PlayerBodyPart::LEFTTHIGH:
+	case PlayerBodyPart::RIGHTSHIN:
+	case PlayerBodyPart::LEFTSHIN:
+		this->removeHp(16);
+		return 16;
+	case PlayerBodyPart::RIGHTFOOT:
+	case PlayerBodyPart::LEFTFOOT:
+		this->removeHp(7);
+		return 7;
+	}
+}
+
+void Player::createShotMark(glm::vec4 position)
+{
+	Entity* shotMarkEntity = new Entity(this->shotMarkModel);
+	shotMarkEntity->getTransform().setWorldPosition(position);
+	this->shotMarks.push_back(shotMarkEntity);
 }

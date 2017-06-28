@@ -132,6 +132,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="src\Collision.cpp" />
     <ClCompile Include="src\Network.cpp" />
     <ClCompile Include="src\Player.cpp" />
     <ClCompile Include="src\Game.cpp" />
@@ -155,6 +156,7 @@
     <ClCompile Include="src\UDPSender.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="src\Collision.h" />
     <ClInclude Include="src\Network.h" />
     <ClInclude Include="src\Player.h" />
     <ClInclude Include="src\Game.h" />
@@ -187,6 +189,8 @@
     <None Include="shaders\GouradShader.vs" />
     <None Include="shaders\PhongShader.fs" />
     <None Include="shaders\PhongShader.vs" />
+    <None Include="shaders\SkyboxShader.fs" />
+    <None Include="shaders\SkyboxShader.vs" />
     <None Include="shaders\TextureShader.fs" />
     <None Include="shaders\TextureShader.vs" />
     <None Include="src\Map.h" />

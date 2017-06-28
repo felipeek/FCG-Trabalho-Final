@@ -2,13 +2,15 @@
 
 #include "Entity.h"
 #include "Camera.h"
+#include "Map.h"
 #include "PhysicsEngine\hphysics.h"
 
 namespace raw
 {
-	enum class PlayerCollision
+	class Network;
+
+	enum class PlayerBodyPart
 	{
-		NONE,
 		HEAD,
 		UPPERRIGHTARM,
 		LOWERRIGHTARM,
@@ -29,54 +31,68 @@ namespace raw
 	{
 	public:
 		Player(Model* model);
-		Player(Model* model, Transform& transform);
 		~Player();
 
 		int getHp() const;
 		void setHp(int hp);
 		void removeHp(int damage);
-
-		const Camera& getCamera() const;
-		virtual void render(const Shader& shader, const Camera& camera, const std::vector<Light*>& lights, bool useNormalMap) const;
+		int damage(PlayerBodyPart bodyPart);
+		Camera* getCamera();
 		void renderGun(const Shader& shader, const Camera& camera, const std::vector<Light*>& lights, bool useNormalMap) const;
-		void renderAim(const Shader& shader) const;
+		void Player::renderShotMarks(const Shader& shader, const Camera& camera) const;
+		void renderScreenImages(const Shader& shader) const;
 		void update();
-		void changeLookDirection(float xDifference, float yDifference);
+		void changeLookDirection(float xDifference, float yDifference, float speed);
 		void changeLookDirection(const glm::vec4& lookDirection);
 		glm::vec4 getLookDirection() const;
 		glm::vec4 getPerpendicularDirection() const;
-		void fire();
+		void shoot(Player* secondPlayer, const std::vector<MapWallDescriptor>& mapWallDescriptors, Network* network);
+		void shoot(Player* secondPlayer, const std::vector<MapWallDescriptor>& mapWallDescriptors);
+		void shoot(const std::vector<MapWallDescriptor>& mapWallDescriptors);
+		void startShootingAnimation();
+		void startDamageAnimation();
 
 		// GJK & COLLISION
-		PlayerCollision isViewRayCollidingWith(Player* player) const;
-		std::vector<BoundingShape>& getBoundingBoxInModelCoordinates();
+		const std::vector<BoundingShape>& getBoundingBoxInModelCoordinates() const;
 		std::vector<BoundingShape>& getBoundingBoxInWorldCoordinates();
+		static PlayerBodyPart getBoundingBoxBodyPart(unsigned int boundingBoxVectorIndex);
 	private:
-		void initCamera();
-		void initBoundingBox();
+		void createCamera();
+		void createBoundingBox();
 		void createGun();
 		void createAim();
-		void setIsFireAnimationOn(bool isFireAnimationOn);
+		void setIsShootingAnimationOn(bool isShootingAnimationOn);
+		void setIsDamageAnimationOn(bool isDamageAnimationOn);
+		void createShotMark(glm::vec4 position);
 
 		const static int initialHp = 100;
 		int hp;
 
-		Camera camera;
+		Camera* camera;
 		Entity* gun;					// 3D Gun
 		Entity* aim;					// 2D Player Aim
 		Entity* firstPersonGun;			// 2D Gun (Fixed in screen)
 		Entity* firstPersonGunFiring;	// 2D Gun Firing (Fixed in screen)
+		Entity* damageAnimationEntity;	// 2D damageAnimation
+
+		// Shot Marks
+		std::vector<Entity*> shotMarks;
+		Model* shotMarkModel;
 
 		// GJK & COLLISION
-		PlayerCollision getCollisionBodyPart(unsigned int boundingBoxVectorIndex) const;
 		Entity* boundingBoxEntity;
 		Model* boundingBoxModel;
 		std::vector<BoundingShape> boundingBoxInModelCoordinates;
 		std::vector<BoundingShape> boundingBoxInWorldCoordinates;
 
-		// Fire Related
-		bool isFireAnimationOn;
-		const double fireAnimationTime = 0.05;
-		double fireTime;
+		// Shooting Animation Related
+		bool isShootingAnimationOn;
+		const double shootingAnimationTotalTime = 0.05;
+		double shootingAnimationTime;
+
+		// Damage Animation Related
+		bool isDamageAnimationOn;
+		const double damageAnimationTotalTime = 0.7;
+		double damageAnimationTime;
 	};
 }
