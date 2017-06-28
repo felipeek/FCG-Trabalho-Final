@@ -11,6 +11,7 @@ Light::Light(glm::vec4 ambientColor, glm::vec4 diffuseColor, glm::vec4 specularC
 	this->ambientColor = ambientColor;
 	this->diffuseColor = diffuseColor;
 	this->specularColor = specularColor;
+	this->on = true;
 }
 
 Light::~Light()
@@ -53,6 +54,16 @@ LightType Light::getType() const
 	return this->type;
 }
 
+void Light::setOn(bool on)
+{
+	this->on = on;
+}
+
+bool Light::isOn() const
+{
+	return this->on;
+}
+
 // Send all information about the light to the shader, so it can be used when rendering.
 void Light::updateUniforms(const Shader& shader, unsigned int arrayPosition) const
 {
@@ -62,6 +73,7 @@ void Light::updateUniforms(const Shader& shader, unsigned int arrayPosition) con
 	glm::vec4 lightDiffuse = this->diffuseColor;
 	glm::vec4 lightSpecular = this->specularColor;
 	LightType lightType = this->getType();
+	bool isOn = this->on;
 
 	this->getShaderLocationString("ambientColor", locationBuffer, arrayPosition);
 	GLuint lightAmbientLocation = glGetUniformLocation(shader.getProgram(), locationBuffer);
@@ -71,11 +83,14 @@ void Light::updateUniforms(const Shader& shader, unsigned int arrayPosition) con
 	GLuint lightSpecularLocation = glGetUniformLocation(shader.getProgram(), locationBuffer);
 	this->getShaderLocationString("type", locationBuffer, arrayPosition);
 	GLuint lightTypeLocation = glGetUniformLocation(shader.getProgram(), locationBuffer);
+	this->getShaderLocationString("isOn", locationBuffer, arrayPosition);
+	GLuint isOnLocation = glGetUniformLocation(shader.getProgram(), locationBuffer);
 
 	glUniform4f(lightAmbientLocation, lightAmbient.x, lightAmbient.y, lightAmbient.z, lightAmbient.w);
 	glUniform4f(lightDiffuseLocation, lightDiffuse.x, lightDiffuse.y, lightDiffuse.z, lightDiffuse.w);
 	glUniform4f(lightSpecularLocation, lightSpecular.x, lightSpecular.y, lightSpecular.z, lightSpecular.w);
 	glUniform1i(lightTypeLocation, lightType);
+	glUniform1i(isOnLocation, isOn);
 }
 
 // This function will generate a string with the following format: "lights[arrayPosition].attribute"

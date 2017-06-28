@@ -20,6 +20,8 @@ struct LightDescriptor
 	vec4 direction;					// SpotLight and DirectionLight
 	float innerCutOffAngleCos;		// SpotLight
 	float outerCutOffAngleCos;		// SpotLight
+	
+	bool isOn;
 };
 
 struct Color
@@ -81,27 +83,28 @@ Color getFragmentColor(vec4 fragmentNormal, vec2 fragmentTextureCoords, vec4 fra
 	int i;
 
 	for (i=0; i<lightQuantity; ++i)
-		switch(lights[i].type)
-		{
-			case LT_POINTLIGHT:
-				c = getPointLightContribution(lights[i], fragmentNormal, fragmentTextureCoords, fragmentPosition);
-				resultColor.ambientColor += c.ambientColor;
-				resultColor.diffuseColor += c.diffuseColor;
-				resultColor.specularColor += c.specularColor;
-				break;
-			case LT_SPOTLIGHT:
-				c = getSpotLightContribution(lights[i], fragmentNormal, fragmentTextureCoords, fragmentPosition);
-				resultColor.ambientColor += c.ambientColor;
-				resultColor.diffuseColor += c.diffuseColor;
-				resultColor.specularColor += c.specularColor;
-				break;
-			case LT_DIRECTIONALLIGHT:
-				c = getDirectionalLightContribution(lights[i], fragmentNormal, fragmentTextureCoords, fragmentPosition);
-				resultColor.ambientColor += c.ambientColor;
-				resultColor.diffuseColor += c.diffuseColor;
-				resultColor.specularColor += c.specularColor;
-				break;
-		}
+		if (lights[i].isOn)
+			switch(lights[i].type)
+			{
+				case LT_POINTLIGHT:
+					c = getPointLightContribution(lights[i], fragmentNormal, fragmentTextureCoords, fragmentPosition);
+					resultColor.ambientColor += c.ambientColor;
+					resultColor.diffuseColor += c.diffuseColor;
+					resultColor.specularColor += c.specularColor;
+					break;
+				case LT_SPOTLIGHT:
+					c = getSpotLightContribution(lights[i], fragmentNormal, fragmentTextureCoords, fragmentPosition);
+					resultColor.ambientColor += c.ambientColor;
+					resultColor.diffuseColor += c.diffuseColor;
+					resultColor.specularColor += c.specularColor;
+					break;
+				case LT_DIRECTIONALLIGHT:
+					c = getDirectionalLightContribution(lights[i], fragmentNormal, fragmentTextureCoords, fragmentPosition);
+					resultColor.ambientColor += c.ambientColor;
+					resultColor.diffuseColor += c.diffuseColor;
+					resultColor.specularColor += c.specularColor;
+					break;
+			}
 
 	fragmentTextureCoords = vertexTextureCoords;
 		
@@ -148,7 +151,7 @@ Color getSpotLightContribution(LightDescriptor spotLight, vec4 fragmentNormal, v
 {
 	vec4 fragmentToSpotLightVec = normalize(spotLight.position - fragmentPosition);
 	float spotAngleCos = dot(-fragmentToSpotLightVec, normalize(spotLight.direction));
-	float spotIntensity = clamp((spotAngleCos - spotLight.outerCutOffAngleCos) /
+	float spotIntensity = 10.0 * clamp((spotAngleCos - spotLight.outerCutOffAngleCos) /
 		(spotLight.innerCutOffAngleCos - spotLight.outerCutOffAngleCos), 0.0, 1.0);
 
 	// Ambient Color

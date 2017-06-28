@@ -26,6 +26,16 @@ Model* Map::generateMapModel() const
 {
 	std::vector<Mesh*> mapMeshes;
 
+	std::vector<unsigned int> blockedMeshIndices;
+	std::vector<Vertex> blockedMeshVertices;
+
+	std::vector<unsigned int> freeMeshIndices;
+	std::vector<Vertex> freeMeshVertices;
+
+	test t;
+	int blockedLastIndex = 0;
+	int freeLastIndex = 0;
+
 	for (int i = 0; i < this->mapHeight; ++i)
 		for (int j = 0; j < this->mapWidth; ++j)
 		{
@@ -35,10 +45,20 @@ Model* Map::generateMapModel() const
 			switch (terrainType)
 			{
 			case TerrainType::BLOCKED:
-				mapMeshes.push_back(this->getMeshForBlockedTerrain(this->mapXScalement * j, this->mapZScalement * i));
+				t = this->getMeshForBlockedTerrain(this->mapXScalement * j, this->mapZScalement * i);
+				for (unsigned int i = 0; i < t.indices.size(); ++i)
+					t.indices[i] = t.indices[i] + blockedLastIndex;
+				blockedLastIndex += t.vertices.size();
+				blockedMeshVertices.insert(blockedMeshVertices.end(), t.vertices.begin(), t.vertices.end());
+				blockedMeshIndices.insert(blockedMeshIndices.end(), t.indices.begin(), t.indices.end());
 				break;
 			case TerrainType::FREE:
-				mapMeshes.push_back(this->getMeshForFreeTerrain(this->mapXScalement * j, this->mapZScalement * i));
+				t = this->getMeshForFreeTerrain(this->mapXScalement * j, this->mapZScalement * i);
+				for (unsigned int i = 0; i < t.indices.size(); ++i)
+					t.indices[i] = t.indices[i] + freeLastIndex;
+				freeLastIndex += t.vertices.size();
+				freeMeshVertices.insert(freeMeshVertices.end(), t.vertices.begin(), t.vertices.end());
+				freeMeshIndices.insert(freeMeshIndices.end(), t.indices.begin(), t.indices.end());
 				break;
 			case TerrainType::OUT:
 			default:
@@ -46,6 +66,21 @@ Model* Map::generateMapModel() const
 				break;
 			}
 		}
+
+	Texture* blockedDiffuse = Texture::load(".\\res\\art\\brickwall_diffuse.jpg");
+	Texture* blockedSpecular = Texture::load(".\\res\\art\\black.png");
+	Texture* blockedNormal = Texture::load(".\\res\\art\\brickwall_normal.jpg");
+
+	Mesh* blockedMesh = new Mesh(blockedMeshVertices, blockedMeshIndices, blockedDiffuse, blockedSpecular, blockedNormal, 32.0f);
+		
+	Texture* freeDiffuse = Texture::load(".\\res\\art\\grass01.jpg");
+	Texture* freeSpecular = Texture::load(".\\res\\art\\grass01_s.jpg");
+	Texture* freeNormal = Texture::load(".\\res\\art\\grass01_n.jpg");
+
+	Mesh* freeMesh = new Mesh(freeMeshVertices, freeMeshIndices, freeDiffuse, freeSpecular, freeNormal, 32.0f);
+
+	mapMeshes.push_back(blockedMesh);
+	mapMeshes.push_back(freeMesh);
 
 	return new Model(mapMeshes);
 }
@@ -139,7 +174,7 @@ TerrainType Map::getTerrainTypeForMovement(const glm::vec4& position) const
 	return TerrainType::FREE;
 }
 
-Mesh* Map::getMeshForBlockedTerrain(float xPos, float zPos) const
+test Map::getMeshForBlockedTerrain(float xPos, float zPos) const
 {
 	Vertex vertex[4];
 	std::vector<Vertex> meshVertices;
@@ -356,22 +391,14 @@ Mesh* Map::getMeshForBlockedTerrain(float xPos, float zPos) const
 	meshIndices.push_back(3 + 5 * 4);
 	meshIndices.push_back(2 + 5 * 4);
 
-	//Texture* diffuseMap = Texture::load(".\\res\\art\\rust_diffuse.jpg");
-	//Texture* specularMap = Texture::load(".\\res\\art\\rust_specular.jpg");
-	//Texture* normalMap = Texture::load(".\\res\\art\\rust_normal.jpg");
+	test t;
+	t.indices = meshIndices;
+	t.vertices = meshVertices;
 
-	Texture* diffuseMap = Texture::load(".\\res\\art\\brickwall_diffuse.jpg");
-	Texture* specularMap = Texture::load(".\\res\\art\\black.png");
-	Texture* normalMap = Texture::load(".\\res\\art\\brickwall_normal.jpg");
-
-//	Texture* diffuseMap = Texture::load(".\\res\\art\\tileable_stone_wall_diffuse.jpg");
-//	Texture* specularMap = Texture::load(".\\res\\art\\tileable_stone_wall_specular.jpg");
-//	Texture* normalMap = Texture::load(".\\res\\art\\tileable_stone_wall_normal.jpg");
-
-	return new Mesh(meshVertices, meshIndices, diffuseMap, specularMap, normalMap, 32.0f);
+	return t;
 }
 
-Mesh* Map::getMeshForFreeTerrain(float xPos, float zPos) const
+test Map::getMeshForFreeTerrain(float xPos, float zPos) const
 {
 	Vertex vertex;
 	std::vector<Vertex> meshVertices;
@@ -404,13 +431,11 @@ Mesh* Map::getMeshForFreeTerrain(float xPos, float zPos) const
 	meshIndices.push_back(3 + 0 * 4);
 	meshIndices.push_back(2 + 0 * 4);
 
-	Texture* diffuseMap = Texture::load(".\\res\\art\\grass01.jpg");
-	Texture* specularMap = Texture::load(".\\res\\art\\grass01_s.jpg");
-	Texture* normalMap = Texture::load(".\\res\\art\\grass01_n.jpg");
-	//Texture* specularMap = Texture::load(".\\res\\art\\black.png");
-	//Texture* normalMap = 0;
+	test t;
+	t.indices = meshIndices;
+	t.vertices = meshVertices;
 
-	return new Mesh(meshVertices, meshIndices, diffuseMap, specularMap, normalMap, 32.0f);
+	return t;
 }
 
 std::vector<MapWallDescriptor> Map::getMapWallDescriptorsForBlockedTerrain(float xPos, float zPos) const

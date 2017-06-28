@@ -12,6 +12,7 @@ namespace raw
 	class Network;
 	class Skybox;
 	class OrthographicCamera;
+	class StreetSpotLight;
 
 	enum class CameraType
 	{
@@ -84,9 +85,14 @@ namespace raw
 		
 		// Entities and Light
 		std::vector<Light*> lights;
+		StreetSpotLight* streetSpotLight;
 		std::vector<StreetLamp*> streetLamps;
 		std::vector<Model*> models;
 		std::vector<Entity*> entities;
+
+		// SpotLight
+		Entity* spotLightEntity;
+		Model* spotLightModel;
 
 		// Game settings
 		bool singlePlayer;

@@ -43,8 +43,52 @@ Player::Player(Model* model) : Entity(model)
 	this->damageAnimationEntity->getTransform().setWorldScale(glm::vec3(damageAnimationScale,
 		damageAnimationScale, damageAnimationScale));
 
+	// Movement Interpolation
+	this->isMovementInterpolationOn = false;
+	this->movementInterpolationPosition = glm::vec4(0.0f);
+
 	// Update player
-	this->update();
+	// this->update();
+}
+
+// This function will start moving the player towards "position"
+// Used in multiplayer mode to simulate the enemy movement
+void Player::startMovementInterpolation(const glm::vec4& position)
+{
+	if (this->getTransform().getWorldPosition() != position)
+	{
+		this->isMovementInterpolationOn = true;
+		this->movementInterpolationPosition = position;
+	}
+}
+
+// Interpolate player movement if interpolation is on
+void Player::interpolateMovement(float deltaTime)
+{
+	static const float playerSpeed = 3.5f;
+
+	if (this->isMovementInterpolationOn)
+	{
+		// Calculate new position
+		glm::vec4 currentPosition = this->getTransform().getWorldPosition();
+		glm::vec4 direction = glm::normalize(this->movementInterpolationPosition - currentPosition);
+		glm::vec4 newPosition = currentPosition + playerSpeed * deltaTime * direction;
+		newPosition.y = currentPosition.y;		// Keep y
+
+		float playerToFinalPositionDistance = glm::length(currentPosition - this->movementInterpolationPosition);
+		float playerToNewPositionDistance = glm::length(currentPosition - newPosition);
+
+		// If the distance from player to the new position is greater than the distance from
+		// player to the final interpolation position, than interpolation is over and we can
+		// just set player position to be the final interpolation position
+		if (playerToFinalPositionDistance <= playerToNewPositionDistance)
+		{
+			newPosition = this->movementInterpolationPosition;
+			this->isMovementInterpolationOn = false;
+		}
+
+		this->getTransform().setWorldPosition(newPosition);
+	}
 }
 
 // Delete player
@@ -247,7 +291,7 @@ void Player::renderScreenImages(const Shader& shader) const
 }
 
 // Update player
-void Player::update()
+void Player::update(float deltaTime)
 {
 	glm::vec4 playerPosition = this->getTransform().getWorldPosition();
 
@@ -301,6 +345,10 @@ void Player::update()
 		this->getTransform().setWorldPosition(glm::vec4(1.7f, 0.0f, 1.7f, 1.0f));
 		this->setHp(this->initialHp);
 	}
+
+	// Update player position interpolation, if activated
+	if (this->isMovementInterpolationOn)
+		this->interpolateMovement(deltaTime);
 }
 
 // Shoot, test collisions with second player and map walls.

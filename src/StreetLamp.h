@@ -22,5 +22,10 @@ namespace raw
 	private:
 		Entity* baseEntity;
 		Entity* bulbEntity;
+
+		static Model* getBaseModel();
+		static Model* getBulbModel();
+		static Model* baseModel;
+		static Model* bulbModel;
 	};
 }

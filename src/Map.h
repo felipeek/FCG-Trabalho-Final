@@ -20,6 +20,12 @@ namespace raw
 		float zLength;
 	};
 
+	struct test
+	{
+		std::vector<Vertex> vertices;
+		std::vector<unsigned int> indices;
+	};
+
 	class Map
 	{
 	public:
@@ -30,8 +36,8 @@ namespace raw
 		TerrainType getTerrainType(const glm::vec4& position) const;
 		TerrainType getTerrainTypeForMovement(const glm::vec4& position) const;
 	private:
-		Mesh* getMeshForBlockedTerrain(float xPos, float zPos) const;
-		Mesh* getMeshForFreeTerrain(float xPos, float zPos) const;
+		test getMeshForBlockedTerrain(float xPos, float zPos) const;
+		test getMeshForFreeTerrain(float xPos, float zPos) const;
 		std::vector<MapWallDescriptor> getMapWallDescriptorsForBlockedTerrain(float xPos, float zPos) const;
 		std::vector<MapWallDescriptor> getMapWallDescriptorsForFreeTerrain(float xPos, float zPos) const;
 		float mapXScalement;

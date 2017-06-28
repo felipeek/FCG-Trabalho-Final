@@ -33,9 +33,12 @@ namespace raw
 		glm::vec4 getSpecularColor() const;
 		virtual void updateUniforms(const Shader& shader, unsigned int arrayPosition) const;
 		virtual LightType getType() const = 0;
+		void setOn(bool on);
+		bool isOn() const;
 	protected:
 		void getShaderLocationString(char* attribute, char* buffer, unsigned int arrayPosition) const;
 	private:
+		bool on;
 		glm::vec4 position;
 		glm::vec4 ambientColor;
 		glm::vec4 diffuseColor;

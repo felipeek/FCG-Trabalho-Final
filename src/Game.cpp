@@ -26,7 +26,8 @@ void Game::init(bool singlePlayer)
 
 	// Init Network
 	if (!this->singlePlayer)
-		this->network = new Network(this, "127.0.0.1", 8888);
+		this->network = new Network(this, "189.114.106.246", 8888);
+		//this->network = new Network(this, "127.0.0.1", 8888);
 
 	// Create sky
 	this->skybox = new Skybox();
@@ -109,6 +110,9 @@ void Game::render() const
 	for (unsigned int i = 0; i < this->streetLamps.size(); ++i)
 		this->streetLamps[i]->render(*shaderToUse, *basicShader, *selectedCamera, this->lights, this->useNormalMap);
 
+	// Render street spot light
+	this->streetSpotLight->render(*shaderToUse, *basicShader, *selectedCamera, this->lights, this->useNormalMap);
+
 	// Avoid rendering the player when the player camera is being used to not block the camera.
 	if (this->selectedCamera != CameraType::PLAYER)
 	{
@@ -149,13 +153,13 @@ void Game::update(float deltaTime)
 	this->lookAtCamera->setPosition(lookAtNewPosition);
 
 	// Update player
-	this->player->update();
+	this->player->update(deltaTime);
 
 	// If multiplayer
 	if (!this->singlePlayer)
 	{
 		// Update second player
-		this->secondPlayer->update();
+		this->secondPlayer->update(deltaTime);
 
 		// Check if new packets arrived from the second player.
 		this->network->receiveAndProcessPackets();
@@ -175,6 +179,8 @@ void Game::update(float deltaTime)
 	this->orthoFreeCamera->setFarPlane(freeCamera->getFarPlane());
 	this->orthoFreeCamera->setUpVector(freeCamera->getUpVector());
 	this->orthoFreeCamera->setViewVector(freeCamera->getViewVector());
+
+	//this->streetSpotLight->setWorldPosition(glm::vec4(x, y, z, 1.0f));
 }
 
 void Game::destroy()
@@ -238,7 +244,7 @@ void Game::processMouseChange(double xPos, double yPos)
 	static bool firstTime = true;
 	// This constant is basically the mouse sensibility.
 	// @TODO: Allow mouse sensibility to be configurable.
-	static const float cameraMouseSpeed = 0.01f;
+	static const float cameraMouseSpeed = 0.002f;
 	
 	if (!firstTime)
 	{
@@ -383,24 +389,9 @@ void Game::createLights()
 
 	LightAttenuation attenuation = {
 		1.0f,		// Constant Term
-		0.22f,		// Linear Term
-		0.20f		// Quadratic Term
+		0.0014f,		// Linear Term
+		0.000007f		// Quadratic Term
 	};
-
-	// POINT LIGHT
-	//glm::vec4 plPosition = glm::vec4(5.6923f, 0.56f, 1.0f + 0.1f, 1.0f);
-	//PointLight* pointLight = new PointLight(plPosition, ambientLight, diffuseLight, specularLight);
-	//pointLight->setAttenuation(attenuation);
-	//this->lights.push_back(pointLight);
-
-	// SPOT LIGHT
-	//glm::vec4 slPosition = glm::vec4(0, 0, 1, 1);
-	//SpotLight* spotLight = new SpotLight(slPosition, ambientLight, diffuseLight, specularLight);
-	//spotLight->setAttenuation(attenuation);
-	//spotLight->setInnerCutOffAngle(glm::radians(12.5f));
-	//spotLight->setOuterCutOffAngle(glm::radians(17.5f));
-	//spotLight->setDirection(glm::vec4(0, 0, -1, 0));
-	//this->lights.push_back(spotLight);
 
 	// DIRECTIONAL LIGHT
 	glm::vec4 dlDirection = glm::vec4(-0.2f, -1.0f, -0.3f, 0.0f);
@@ -410,6 +401,16 @@ void Game::createLights()
 	DirectionalLight* directionalLight = new DirectionalLight(dlDirection, dAmbientLight, dDiffuseLight,
 		dSpecularLight);
 	this->lights.push_back(directionalLight);
+
+	// STREET SPOTLIGHT
+	this->streetSpotLight = new StreetSpotLight(glm::vec4(4.9f, 0.81f, 3.88f, 1.0f), dAmbientLight,
+		dDiffuseLight, dSpecularLight);
+	this->streetSpotLight->setWorldRotation(glm::vec3(PI_F / 2.0f, 0.0f, -PI_F/2.0f));
+	this->streetSpotLight->setAttenuation(attenuation);
+	this->streetSpotLight->setInnerCutOffAngle(glm::radians(12.5f));
+	this->streetSpotLight->setOuterCutOffAngle(glm::radians(17.5f));
+	this->streetSpotLight->setDirection(glm::vec4(0, -1.0f, -1.0f, 0));
+	this->lights.push_back(streetSpotLight);
 
 	// CREATE ALL STREET LAMPS
 	glm::vec4 streetLampPosition = glm::vec4(5.69f, 0.56f, 1.165f, 1.0f);
@@ -539,6 +540,12 @@ void Game::createEntities()
 	woodBilletEntity->getTransform().setWorldPosition(glm::vec4(5.0114f, 0.05f, 1.39f, 1.0f));
 	woodBilletEntity->getTransform().setWorldScale(glm::vec3(0.05f, 0.05f, 0.05f));
 	this->entities.push_back(woodBilletEntity);
+
+	//Model* chaoModel = new Model(".\\res\\art\\chao.obj");
+	//Entity* chaoEntity = new Entity(chaoModel);
+	//chaoEntity->getTransform().setWorldPosition(glm::vec4(2.0f, 0.2f, 2.0f, 1.0f));
+	//chaoEntity->getTransform().setWorldScale(glm::vec3(0.1f, 0.1f, 0.1f));
+	//this->entities.push_back(chaoEntity);
 }
 
 // Returns a new position based on an original position and a movement direction.
@@ -661,6 +668,25 @@ void Game::processInput(bool* keyState, float deltaTime)
 		this->useOrthoCamera = !this->useOrthoCamera;
 		keyState[GLFW_KEY_O] = false;					// Force false to only compute one time.
 	}
+
+	if (keyState[GLFW_KEY_1])
+	{
+		this->streetSpotLight->setOn(!this->streetSpotLight->isOn());
+		keyState[GLFW_KEY_1] = false;					// Force false to only compute one time.
+	}
+
+	//if (keyState[GLFW_KEY_X] && !keyState[GLFW_KEY_Q])
+	//	x += 0.01f;
+	//if (keyState[GLFW_KEY_X] && keyState[GLFW_KEY_Q])
+	//	x -= 0.01f;
+	//if (keyState[GLFW_KEY_Y] && !keyState[GLFW_KEY_Q])
+	//	y += 0.01f;
+	//if (keyState[GLFW_KEY_Y] && keyState[GLFW_KEY_Q])
+	//	y -= 0.01f;
+	//if (keyState[GLFW_KEY_Z] && !keyState[GLFW_KEY_Q])
+	//	z += 0.01f;
+	//if (keyState[GLFW_KEY_Z] && keyState[GLFW_KEY_Q])
+	//	z -= 0.01f;
 }
 
 // This function will check which keys are pressed and which camera is selected and will move cameras and players.

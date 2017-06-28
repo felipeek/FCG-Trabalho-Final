@@ -110,7 +110,8 @@ void Network::processPlayerInformationPacket(char* buffer)
 
 	if (secondPlayer)
 	{
-		secondPlayer->getTransform().setWorldPosition(playerPosition);
+		secondPlayer->startMovementInterpolation(playerPosition);
+		//secondPlayer->getTransform().setWorldPosition(playerPosition);
 		secondPlayer->changeLookDirection(playerLookDirection);
 	}
 }

@@ -62,7 +62,7 @@ void Entity::render(const Shader& shader, const Camera& camera, const std::vecto
 		glUniform4f(cameraPositionLocation, cameraPosition.x, cameraPosition.y, cameraPosition.z, cameraPosition.w);
 		glUniform1i(lightQuantityLocation, lights.size());
 
-		for (unsigned int i = 0; i<lights.size(); ++i)
+		for (unsigned int i = 0; i < lights.size(); ++i)
 			lights[i]->updateUniforms(shader, i);
 	}
 

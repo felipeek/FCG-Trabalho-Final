@@ -6,24 +6,17 @@ using namespace raw;
 StreetLamp::StreetLamp(glm::vec4 position, glm::vec4 ambientColor, glm::vec4 diffuseColor, glm::vec4 specularColor) :
 	PointLight(position, ambientColor, diffuseColor, specularColor)
 {
-	Model* baseModel = new Model(".\\res\\art\\base_lamp.obj");
-	this->baseEntity = new Entity(baseModel);
+	this->baseEntity = new Entity(StreetLamp::getBaseModel());
 	this->baseEntity->getTransform().setWorldPosition(position);
 	this->baseEntity->getTransform().setWorldScale(glm::vec3(0.01f, 0.01f, 0.01f));
-	this->baseEntity->getModel()->setDiffuseMapOfAllMeshes(Texture::load(".\\res\\art\\metal_diffuse.jpg"));
-	this->baseEntity->getModel()->setSpecularMapOfAllMeshes(Texture::load(".\\res\\art\\meta_specular.jpg"));
-	this->baseEntity->getModel()->setNormalMapOfAllMeshes(Texture::load(".\\res\\art\\metal_normal.jpg"));
 
-	Model* bulbModel = new Model(".\\res\\art\\bulb_lamp.obj");
-	this->bulbEntity = new Entity(bulbModel);
+	this->bulbEntity = new Entity(StreetLamp::getBulbModel());
 	this->bulbEntity->getTransform().setWorldPosition(glm::vec4(position));
 	this->bulbEntity->getTransform().setWorldScale(glm::vec3(0.01f, 0.01f, 0.01f));
 }
 
 StreetLamp::~StreetLamp()
 {
-	delete this->baseEntity->getModel();
-	delete this->bulbEntity->getModel();
 	delete this->baseEntity;
 	delete this->bulbEntity;
 }
@@ -78,4 +71,30 @@ void StreetLamp::setWorldScale(const glm::vec3& scale)
 {
 	this->baseEntity->getTransform().setWorldScale(scale);
 	this->bulbEntity->getTransform().setWorldScale(scale);
+}
+
+Model* StreetLamp::baseModel;
+Model* StreetLamp::bulbModel;
+
+Model* StreetLamp::getBaseModel()
+{
+	if (StreetLamp::baseModel == 0)
+	{
+		StreetLamp::baseModel = new Model(".\\res\\art\\base_lamp.obj");
+		StreetLamp::baseModel->setDiffuseMapOfAllMeshes(Texture::load(".\\res\\art\\metal_diffuse.jpg"));
+		StreetLamp::baseModel->setSpecularMapOfAllMeshes(Texture::load(".\\res\\art\\meta_specular.jpg"));
+		StreetLamp::baseModel->setNormalMapOfAllMeshes(Texture::load(".\\res\\art\\metal_normal.jpg"));
+	}
+
+	return StreetLamp::baseModel;
+}
+
+Model* StreetLamp::getBulbModel()
+{
+	if (StreetLamp::bulbModel == 0)
+	{
+		StreetLamp::bulbModel = new Model(".\\res\\art\\bulb_lamp.obj");
+	}
+
+	return StreetLamp::bulbModel;
 }

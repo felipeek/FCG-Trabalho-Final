@@ -20,6 +20,8 @@ struct LightDescriptor
 	vec4 direction;					// SpotLight and DirectionLight
 	float innerCutOffAngleCos;		// SpotLight
 	float outerCutOffAngleCos;		// SpotLight
+	
+	bool isOn;
 };
 
 struct Material
@@ -55,18 +57,19 @@ void main()
 	int i;
 
 	for (i=0; i<lightQuantity; ++i)
-		switch(lights[i].type)
-		{
-			case LT_POINTLIGHT:
-				resultColor += getPointLightContribution(lights[i], normal);
-				break;
-			case LT_SPOTLIGHT:
-				resultColor += getSpotLightContribution(lights[i], normal);
-				break;
-			case LT_DIRECTIONALLIGHT:
-				resultColor += getDirectionalLightContribution(lights[i], normal);
-				break;
-		}
+		if (lights[i].isOn)
+			switch(lights[i].type)
+			{
+				case LT_POINTLIGHT:
+					resultColor += getPointLightContribution(lights[i], normal);
+					break;
+				case LT_SPOTLIGHT:
+					resultColor += getSpotLightContribution(lights[i], normal);
+					break;
+				case LT_DIRECTIONALLIGHT:
+					resultColor += getDirectionalLightContribution(lights[i], normal);
+					break;
+			}
 
 	finalColor = vec4(resultColor, 1.0);
 }
@@ -128,7 +131,7 @@ vec3 getSpotLightContribution(LightDescriptor spotLight, vec4 normal)
 {
 	vec4 fragmentToSpotLightVec = normalize(spotLight.position - fragmentPosition);
 	float spotAngleCos = dot(-fragmentToSpotLightVec, normalize(spotLight.direction));
-	float spotIntensity = clamp((spotAngleCos - spotLight.outerCutOffAngleCos) /
+	float spotIntensity = 10.0 * clamp((spotAngleCos - spotLight.outerCutOffAngleCos) /
 		(spotLight.innerCutOffAngleCos - spotLight.outerCutOffAngleCos), 0.0, 1.0);
 
 	// Ambient Color

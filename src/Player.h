@@ -47,7 +47,9 @@ namespace raw
 		void renderGun(const Shader& shader, const Camera& camera, const std::vector<Light*>& lights, bool useNormalMap) const;
 		void Player::renderShotMarks(const Shader& shader, const Camera& camera) const;
 		void renderScreenImages(const Shader& shader) const;
-		void update();
+		void startMovementInterpolation(const glm::vec4& position);
+		void interpolateMovement(float deltaTime);
+		void update(float deltaTime);
 		void changeLookDirection(float xDifference, float yDifference, float speed);
 		void changeLookDirection(const glm::vec4& lookDirection);
 		glm::vec4 getLookDirection() const;
@@ -101,5 +103,9 @@ namespace raw
 		bool isDamageAnimationOn;
 		const double damageAnimationTotalTime = 0.7;
 		double damageAnimationTime;
+
+		// Movement Interpolation
+		bool isMovementInterpolationOn;
+		glm::vec4 movementInterpolationPosition;
 	};
 }
