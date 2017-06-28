@@ -5,9 +5,6 @@
 
 using namespace raw;
 
-extern int windowWidth;
-extern int windowHeight;
-
 Entity::Entity(Model* model)
 {
 	this->model = model;
@@ -72,6 +69,21 @@ void Entity::render(const Shader& shader, const Camera& camera, const std::vecto
 	this->model->render(shader, useNormalMap);
 }
 
+void Entity::render(const Shader& shader, const Camera& camera, glm::vec4 solidColor) const
+{
+	shader.useProgram();
+	GLuint modelMatrixLocation = glGetUniformLocation(shader.getProgram(), "modelMatrix");
+	GLuint viewMatrixLocation = glGetUniformLocation(shader.getProgram(), "viewMatrix");
+	GLuint projectionMatrixLocation = glGetUniformLocation(shader.getProgram(), "projectionMatrix");
+	GLuint solidColorLocation = glGetUniformLocation(shader.getProgram(), "solidColor");
+	glUniformMatrix4fv(modelMatrixLocation, 1, GL_FALSE, glm::value_ptr(this->transform.getModelMatrix()));
+	glUniformMatrix4fv(viewMatrixLocation, 1, GL_FALSE, glm::value_ptr(camera.getViewMatrix()));
+	glUniformMatrix4fv(projectionMatrixLocation, 1, GL_FALSE, glm::value_ptr(camera.getProjectionMatrix()));
+	glUniform4f(solidColorLocation, solidColor.x, solidColor.y, solidColor.z, solidColor.w);
+
+	this->model->render(shader, false);
+}
+
 void Entity::render(const Shader& shader, const Camera& camera) const
 {
 	shader.useProgram();
@@ -85,12 +97,10 @@ void Entity::render(const Shader& shader, const Camera& camera) const
 	this->model->render(shader, false);
 }
 
-void Entity::render(const Shader& shader) const
+void Entity::render(const Shader& shader, float windowRatio) const
 {
-	float ratio = (float)windowHeight / (float)windowWidth;
-
 	glm::mat4 scaleMatrix = glm::transpose(glm::mat4({
-		ratio, 0.0f, 0.0f, 0.0f,
+		windowRatio, 0.0f, 0.0f, 0.0f,
 		0.0f, 1.0f, 0.0f, 0.0f,
 		0.0f, 0.0f, 1.0f, 0.0f,
 		0.0f, 0.0f, 0.0f, 1.0f

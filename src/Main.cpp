@@ -6,8 +6,8 @@
 
 #define WINDOW_TITLE "Result.exe"
 
-int windowWidth = 800;
-int windowHeight = 600;
+int windowWidth = 1366;
+int windowHeight = 768;
 
 static bool keyState[1024];	// @TODO: Check range.
 static float deltaTime;
@@ -42,10 +42,18 @@ void glfwScrollCallback(GLFWwindow* window, double xOffset, double yOffset)
 		game->processScrollChange(xOffset, yOffset);
 }
 
+void glfwResizeCallback(GLFWwindow* window, int width, int height)
+{
+	windowWidth = width;
+	windowHeight = height;
+	glViewport(0, 0, width, height);
+	game->processWindowResize(width, height);
+}
+
 GLFWwindow* initGlfw()
 {
 	glfwInit();
-	glfwWindowHint(GLFW_RESIZABLE, GLFW_FALSE);
+	glfwWindowHint(GLFW_RESIZABLE, GLFW_TRUE);
 	glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_ANY_PROFILE);
 	glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
 	glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 1);
@@ -55,6 +63,7 @@ GLFWwindow* initGlfw()
 	glfwSetCursorPosCallback(window, glfwCursorCallback);
 	glfwSetMouseButtonCallback(window, glfwMouseButtonCallback);
 	glfwSetScrollCallback(window, glfwScrollCallback);
+	glfwSetWindowSizeCallback(window, glfwResizeCallback);
 	glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
 
 	return window;
@@ -78,6 +87,7 @@ int main()
 	game = new raw::Game();
 
 	game->init(true);
+	game->processWindowResize(windowWidth, windowHeight);	// Force game to process window size
 
 	glEnable(GL_DEPTH_TEST);
 	glLineWidth(10);

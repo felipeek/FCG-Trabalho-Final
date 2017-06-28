@@ -31,8 +31,9 @@ StreetLamp::~StreetLamp()
 void StreetLamp::render(const Shader& shaderForBase, const Shader& shaderForBulb, const Camera& camera,
 	const std::vector<Light*>& lights, bool useNormalMap) const
 {
+	const static glm::vec4 bulbColor = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f);
 	this->baseEntity->render(shaderForBase, camera, lights, useNormalMap);
-	this->bulbEntity->render(shaderForBulb, camera, lights, useNormalMap);
+	this->bulbEntity->render(shaderForBulb, camera, bulbColor);
 }
 
 Entity* StreetLamp::getBaseEntity()

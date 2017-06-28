@@ -260,7 +260,7 @@ void Game::processMouseChange(double xPos, double yPos)
 		// If Player camera is selected, mouse change should change player look direction
 		else if (this->selectedCamera == CameraType::PLAYER)
 		{
-			this->player->changeLookDirection(xDifference, yDifference, cameraMouseSpeed);
+			this->player->changeLookDirection((float)xDifference, (float)yDifference, cameraMouseSpeed);
 		}
 	}
 	else
@@ -279,7 +279,7 @@ void Game::processScrollChange(double xOffset, double yOffset)
 	if (this->selectedCamera == CameraType::FREE && this->useOrthoCamera)
 	{
 		float orthoRange = this->orthoFreeCamera->getOrthoRange();
-		this->orthoFreeCamera->setOrthoRange(orthoRange - orthoZoomSpeed * yOffset);
+		this->orthoFreeCamera->setOrthoRange(orthoRange - orthoZoomSpeed * (float)yOffset);
 	}
 }
 
@@ -303,6 +303,18 @@ void Game::processMouseClick(int button, int action)
 			this->player->shoot(this->mapWallDescriptors);
 		}
 	}
+}
+
+void Game::processWindowResize(int width, int height)
+{
+	this->freeCamera->setWindowHeight(height);
+	this->freeCamera->setWindowWidth(width);
+	this->orthoFreeCamera->setWindowHeight(height);
+	this->orthoFreeCamera->setWindowWidth(width);
+	this->lookAtCamera->setWindowHeight(height);
+	this->lookAtCamera->setWindowWidth(width);
+	this->player->getCamera()->setWindowHeight(height);
+	this->player->getCamera()->setWindowWidth(width);
 }
 
 // Returns the local player.

@@ -21,7 +21,9 @@ namespace raw
 		void incYaw(float angle);
 		float getYaw() const;
 		void setWindowHeight(unsigned int windowHeight);
+		unsigned int getWindowHeight() const;
 		void setWindowWidth(unsigned int windowWidth);
+		unsigned int getWindowWidth() const;
 		void setNearPlane(float nearPlane);
 		float getNearPlane() const;
 		void setFarPlane(float farPlane);

@@ -27,6 +27,12 @@ namespace raw
 		LEFTFOOT
 	};
 
+	struct ShotMark
+	{
+		Entity* entity;
+		glm::vec4 color;
+	};
+
 	class Player : public Entity
 	{
 	public:
@@ -63,7 +69,7 @@ namespace raw
 		void createAim();
 		void setIsShootingAnimationOn(bool isShootingAnimationOn);
 		void setIsDamageAnimationOn(bool isDamageAnimationOn);
-		void createShotMark(glm::vec4 position);
+		void createShotMark(glm::vec4 position, glm::vec4 color);
 
 		const static int initialHp = 100;
 		int hp;
@@ -76,7 +82,8 @@ namespace raw
 		Entity* damageAnimationEntity;	// 2D damageAnimation
 
 		// Shot Marks
-		std::vector<Entity*> shotMarks;
+		static glm::vec4 wallShotMarkColor;
+		std::vector<ShotMark> shotMarks;
 		Model* shotMarkModel;
 
 		// GJK & COLLISION

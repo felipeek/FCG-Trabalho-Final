@@ -2,7 +2,9 @@
 
 out vec4 finalColor;
 
+uniform vec4 solidColor;
+
 void main()
 {
-	finalColor = vec4(1.0, 1.0, 1.0, 1.0);
+	finalColor = solidColor;
 }

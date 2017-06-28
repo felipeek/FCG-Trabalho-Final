@@ -19,8 +19,9 @@ namespace raw
 		~Entity();
 
 		virtual void render(const Shader& shader, const Camera& camera, const std::vector<Light*>& lights, bool useNormalMap) const;
+		virtual void render(const Shader& shader, const Camera& camera, glm::vec4 solidColor) const;
 		virtual void render(const Shader& shader, const Camera& camera) const;
-		virtual void render(const Shader& shader) const;
+		virtual void render(const Shader& shader, float windowRatio) const;
 		Transform& getTransform();
 		const Transform& getTransform() const;
 		Model* getModel();

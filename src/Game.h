@@ -33,6 +33,7 @@ namespace raw
 		void processMouseChange(double xPos, double yPos);
 		void processScrollChange(double xOffset, double yOffset);
 		void processMouseClick(int button, int action);
+		void processWindowResize(int width, int height);
 		Player* getLocalPlayer();
 		Player* getSecondPlayer();
 	private:

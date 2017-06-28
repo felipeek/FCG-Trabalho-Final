@@ -43,5 +43,4 @@ void Skybox::render(const Shader& shader, const Camera& camera) const
 	glUniform1i(cubeMapLocation, 0);
 
 	this->cube->render(shader, camera);
-
 }

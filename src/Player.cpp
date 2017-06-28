@@ -9,6 +9,8 @@
 
 using namespace raw;
 
+glm::vec4 Player::wallShotMarkColor = glm::vec4(0.5f, 0.5f, 1.0f, 1.0f);
+
 // Create player
 Player::Player(Model* model) : Entity(model)
 {
@@ -80,7 +82,7 @@ Player::~Player()
 
 	// Destroy Shot Marks
 	for (unsigned int i = 0; i < this->shotMarks.size(); ++i)
-		delete this->shotMarks[i];
+		delete this->shotMarks[i].entity;
 
 	// Delete damage animation model and entity
 	delete this->damageAnimationEntity->getModel();
@@ -210,7 +212,7 @@ Camera* Player::getCamera()
 void Player::renderShotMarks(const Shader& shader, const Camera& camera) const
 {
 	for (unsigned int i = 0; i < this->shotMarks.size(); ++i)
-		this->shotMarks[i]->render(shader, camera);
+		this->shotMarks[i].entity->render(shader, camera, this->shotMarks[i].color);
 }
 
 // Render gun
@@ -224,19 +226,21 @@ void Player::renderGun(const Shader& shader, const Camera& camera, const std::ve
 // Blend should be activated and depth test disabled, otherwise they may conflict.
 void Player::renderScreenImages(const Shader& shader) const
 {
+	float windowRatio = (float)this->camera->getWindowHeight() / (float)this->camera->getWindowWidth();
+
 	glDisable(GL_DEPTH_TEST);
 	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 	glEnable(GL_BLEND);
 
-	this->aim->render(shader);
+	this->aim->render(shader, windowRatio);
 
 	if (this->isShootingAnimationOn)
-		this->firstPersonGunFiring->render(shader);
+		this->firstPersonGunFiring->render(shader, windowRatio);
 	else
-		this->firstPersonGun->render(shader);
+		this->firstPersonGun->render(shader, windowRatio);
 
 	if (this->isDamageAnimationOn)
-		this->damageAnimationEntity->render(shader);
+		this->damageAnimationEntity->render(shader, windowRatio);
 
 	glDisable(GL_BLEND);
 	glEnable(GL_DEPTH_TEST);
@@ -341,7 +345,7 @@ void Player::shoot(Player* secondPlayer, const std::vector<MapWallDescriptor>& m
 		else
 		{
 			// Wall is Closer
-			this->createShotMark(mapWallsCollisionDescriptor.worldPosition);
+			this->createShotMark(mapWallsCollisionDescriptor.worldPosition, wallShotMarkColor);
 
 			// If a network was received, send just a fire animation to second player
 			if (network)
@@ -361,7 +365,7 @@ void Player::shoot(Player* secondPlayer, const std::vector<MapWallDescriptor>& m
 	// If there was a collision with wall only
 	if (!playerCollisionDescriptor.collision.collide && mapWallsCollisionDescriptor.collide)
 	{
-		this->createShotMark(mapWallsCollisionDescriptor.worldPosition);
+		this->createShotMark(mapWallsCollisionDescriptor.worldPosition, wallShotMarkColor);
 
 		// If a network was received, send just a fire animation to second player
 		if (network)
@@ -396,7 +400,7 @@ void Player::shoot(const std::vector<MapWallDescriptor>& mapWallDescriptors)
 
 	// If there was a collision
 	if (mapWallsCollisionDescriptor.collide)
-		this->createShotMark(mapWallsCollisionDescriptor.worldPosition);
+		this->createShotMark(mapWallsCollisionDescriptor.worldPosition, wallShotMarkColor);
 }
 
 // Start the shooting animation
@@ -546,12 +550,17 @@ int Player::damage(PlayerBodyPart bodyPart)
 	case PlayerBodyPart::LEFTFOOT:
 		this->removeHp(7);
 		return 7;
+	default:
+		return 0;
 	}
 }
 
-void Player::createShotMark(glm::vec4 position)
+void Player::createShotMark(glm::vec4 position, glm::vec4 color)
 {
+	ShotMark shotMark;
 	Entity* shotMarkEntity = new Entity(this->shotMarkModel);
 	shotMarkEntity->getTransform().setWorldPosition(position);
-	this->shotMarks.push_back(shotMarkEntity);
+	shotMark.entity = shotMarkEntity;
+	shotMark.color = color;
+	this->shotMarks.push_back(shotMark);
 }

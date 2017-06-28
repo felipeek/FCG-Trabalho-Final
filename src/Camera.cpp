@@ -102,11 +102,21 @@ void Camera::setWindowHeight(unsigned int windowHeight)
 	this->recalculateProjectionMatrix();
 }
 
+unsigned int Camera::getWindowHeight() const
+{
+	return this->windowHeight;
+}
+
 // Change the window width. This value is used to create the projection matrix.
 void Camera::setWindowWidth(unsigned int windowWidth)
 {
 	this->windowWidth = windowWidth;
 	this->recalculateProjectionMatrix();
+}
+
+unsigned int Camera::getWindowWidth() const
+{
+	return this->windowWidth;
 }
 
 // Change the near plane. This value is used to create the projection matrix.
@@ -304,8 +314,8 @@ const glm::mat4& OrthographicCamera::getProjectionMatrix() const
 	return this->projectionMatrix;
 }
 
-// This function will recalculate the Projection Matrix based on the near plane, the far plane, the field of
-// view, the window width and the window height.
+// This function will recalculate the Projection Matrix based on the near plane, the far plane, the ortho range,
+// the window width and the window height.
 // Must be called everytime one of them are changed. The result is stored in this->projectionMatrix.
 void OrthographicCamera::recalculateProjectionMatrix()
 {
