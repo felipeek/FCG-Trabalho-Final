@@ -63,6 +63,7 @@ void Game::init(bool singlePlayer)
 	// Set game settings
 	this->useNormalMap = true;
 	this->useOrthoCamera = false;
+	this->useFog = true;
 }
 
 void Game::render() const
@@ -145,15 +146,11 @@ void Game::update(float deltaTime)
 	// How many times, per second, information about the player should be sent to the second player (multiplayer only)
 	static const int networkUpdatesPerSecond = 10;
 
-	// Update LookAt Camera
-	static const float lookAtCameraDistance = 2.2f;
-	glm::vec4 playerPosition = this->player->getTransform().getWorldPosition();
-	glm::vec4 distanceVector = -lookAtCameraDistance * glm::normalize(this->lookAtCamera->getViewVector());
-	glm::vec4 lookAtNewPosition = playerPosition + distanceVector;
-	this->lookAtCamera->setPosition(lookAtNewPosition);
-
 	// Update player
 	this->player->update(deltaTime);
+
+	// Update cameras
+	this->updateCameras();
 
 	// If multiplayer
 	if (!this->singlePlayer)
@@ -172,6 +169,16 @@ void Game::update(float deltaTime)
 			lastTime = currentTime;
 		}
 	}
+}
+
+void Game::updateCameras()
+{
+	// Update LookAt Camera
+	static const float lookAtCameraDistance = 2.2f;
+	glm::vec4 playerPosition = this->player->getTransform().getWorldPosition();
+	glm::vec4 distanceVector = -lookAtCameraDistance * glm::normalize(this->lookAtCamera->getViewVector());
+	glm::vec4 lookAtNewPosition = playerPosition + distanceVector;
+	this->lookAtCamera->setPosition(lookAtNewPosition);
 
 	// Update Ortho Free Camera (to match Perspective Free Camera)
 	this->orthoFreeCamera->setPosition(freeCamera->getPosition());
@@ -180,7 +187,30 @@ void Game::update(float deltaTime)
 	this->orthoFreeCamera->setUpVector(freeCamera->getUpVector());
 	this->orthoFreeCamera->setViewVector(freeCamera->getViewVector());
 
-	//this->streetSpotLight->setWorldPosition(glm::vec4(x, y, z, 1.0f));
+	// Update fog of all cameras
+	if (this->useFog)
+	{
+		FogDescriptor fogDescriptor;
+		fogDescriptor.density = 0.3f;
+		fogDescriptor.gradient = 1.5f;
+		fogDescriptor.skyColor = this->skybox->getSkyColor();
+
+		this->freeCamera->setUseFog(true);
+		this->freeCamera->setFogDescriptor(fogDescriptor);
+		this->orthoFreeCamera->setUseFog(true);
+		this->orthoFreeCamera->setFogDescriptor(fogDescriptor);
+		this->lookAtCamera->setUseFog(true);
+		this->lookAtCamera->setFogDescriptor(fogDescriptor);
+		this->player->getCamera()->setUseFog(true);
+		this->player->getCamera()->setFogDescriptor(fogDescriptor);
+	}
+	else
+	{
+		this->freeCamera->setUseFog(false);
+		this->orthoFreeCamera->setUseFog(false);
+		this->lookAtCamera->setUseFog(false);
+		this->player->getCamera()->setUseFog(false);
+	}
 }
 
 void Game::destroy()
@@ -620,6 +650,13 @@ void Game::processInput(bool* keyState, float deltaTime)
 	{
 		this->useNormalMap = !this->useNormalMap;
 		keyState[GLFW_KEY_N] = false;					// Force false to only compute one time.
+	}
+
+	// Toggle Use Fog
+	if (keyState[GLFW_KEY_F])
+	{
+		this->useFog = !this->useFog;
+		keyState[GLFW_KEY_F] = false;					// Force false to only compute one time.
 	}
 
 	// Change camera

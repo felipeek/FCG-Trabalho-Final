@@ -4,6 +4,13 @@
 
 namespace raw
 {
+	struct FogDescriptor
+	{
+		float density;
+		float gradient;
+		glm::vec4 skyColor;
+	};
+
 	class Camera
 	{
 	public:
@@ -33,6 +40,10 @@ namespace raw
 		glm::vec4 getZAxis() const;
 		const glm::mat4& getViewMatrix() const;
 		virtual const glm::mat4& getProjectionMatrix() const = 0;
+		bool isUsingFog() const;
+		void setUseFog(bool useFog);
+		FogDescriptor getFogDescriptor() const;
+		void setFogDescriptor(const FogDescriptor& fogDescriptor);
 	protected:
 		void recalculateView();
 		void recalculateAngles();
@@ -52,6 +63,8 @@ namespace raw
 		glm::vec4 yAxis;
 		glm::vec4 zAxis;
 		glm::mat4 viewMatrix;
+		bool useFog;
+		FogDescriptor fogDescriptor;
 	};
 
 	class PerspectiveCamera : public Camera

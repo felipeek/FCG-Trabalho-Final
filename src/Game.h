@@ -52,6 +52,7 @@ namespace raw
 		const Camera* getSelectedCamera() const;
 		StreetLamp* createStreetLamp(const glm::vec4& position, float rotY);
 		void movePlayerAndCamerasBasedOnInput(bool* keyState, float deltaTime);
+		void updateCameras();
 
 		// Network
 		Network* network;
@@ -98,5 +99,6 @@ namespace raw
 		bool singlePlayer;
 		bool useNormalMap;
 		bool useOrthoCamera;
+		bool useFog;
 	};
 }

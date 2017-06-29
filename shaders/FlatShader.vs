@@ -38,6 +38,14 @@ struct Material
 	float shineness;
 };
 
+struct FogDescriptor
+{
+	float density;
+	float gradient;
+	vec4 skyColor;
+	bool on;
+};
+
 layout (location = 0) in vec4 vertexPosition;
 layout (location = 1) in vec4 vertexNormal;
 layout (location = 2) in vec2 vertexTextureCoords;
@@ -45,6 +53,7 @@ layout (location = 2) in vec2 vertexTextureCoords;
 flat out vec4 ambientColor;
 flat out vec4 diffuseColor;
 flat out vec4 specularColor;
+out float fragmentVisibility;
 
 out vec2 fragmentTextureCoords;
 
@@ -56,7 +65,9 @@ uniform LightDescriptor lights[32];
 uniform Material material;
 uniform int lightQuantity;
 uniform vec4 cameraPosition;
+uniform FogDescriptor fogDescriptor;
 
+float getFogVisibility(vec4 positionWorld);
 Color getFragmentColor(vec4 fragmentNormal, vec2 fragmentTextureCoords, vec4 fragmentPosition);
 Color getPointLightContribution(LightDescriptor pointLight, vec4 fragmentNormal, vec2 fragmentTextureCoords, vec4 fragmentPosition);
 Color getSpotLightContribution(LightDescriptor pointLight, vec4 fragmentNormal, vec2 fragmentTextureCoords, vec4 fragmentPosition);
@@ -74,6 +85,15 @@ void main()
 	ambientColor = fragmentColor.ambientColor;
 	diffuseColor = fragmentColor.diffuseColor;
 	specularColor = fragmentColor.specularColor;
+	
+	if (fogDescriptor.on)
+		fragmentVisibility = getFogVisibility(fragmentPosition);
+}
+
+float getFogVisibility(vec4 positionWorld)
+{
+	float cameraDistance = length(positionWorld - cameraPosition);
+	return clamp(exp(-pow((cameraDistance * fogDescriptor.density), fogDescriptor.gradient)), 0.0, 1.0);
 }
 
 Color getFragmentColor(vec4 fragmentNormal, vec2 fragmentTextureCoords, vec4 fragmentPosition)

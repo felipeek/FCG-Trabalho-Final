@@ -12,6 +12,7 @@ Camera::Camera(glm::vec4 position, glm::vec4 up, glm::vec4 view)
 	this->farPlane = -1000.0f;
 	this->windowWidth = 800;
 	this->windowHeight = 600;
+	this->useFog = false;
 	this->recalculateAngles();
 }
 
@@ -215,6 +216,26 @@ void Camera::recalculateViewMatrix()
 		w.x, w.y, w.z, -glm::dot(w, worldToCameraVec),
 		0.0f, 0.0f, 0.0f, 1.0f
 	}));
+}
+
+bool Camera::isUsingFog() const
+{
+	return this->useFog;
+}
+
+void Camera::setUseFog(bool useFog)
+{
+	this->useFog = useFog;
+}
+
+FogDescriptor Camera::getFogDescriptor() const
+{
+	return this->fogDescriptor;
+}
+
+void Camera::setFogDescriptor(const FogDescriptor& fogDescriptor)
+{
+	this->fogDescriptor = fogDescriptor;
 }
 
 // PERSPECTIVE CAMERA

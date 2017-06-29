@@ -25,6 +25,8 @@ Skybox::Skybox()
 	
 	Model* cubeModel = new Model(std::vector<Mesh*>({ StaticModels::getCubeMesh(skyBoxSize, 0, 0, 0, 0.0f) }));
 	this->cube = new Entity(cubeModel);
+
+	this->skyColor = glm::vec4(30.0f / 255, 33.0f / 255, 37.0f / 255, 1.0f);
 }
 
 Skybox::~Skybox()
@@ -43,4 +45,14 @@ void Skybox::render(const Shader& shader, const Camera& camera) const
 	glUniform1i(cubeMapLocation, 0);
 
 	this->cube->render(shader, camera);
+}
+
+void Skybox::setSkyColor(const glm::vec4& skyColor)
+{
+	this->skyColor = skyColor;
+}
+
+glm::vec4 Skybox::getSkyColor() const
+{
+	return this->skyColor;
 }

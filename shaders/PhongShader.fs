@@ -33,10 +33,19 @@ struct Material
 	float shineness;
 };
 
+struct FogDescriptor
+{
+	float density;
+	float gradient;
+	vec4 skyColor;
+	bool on;
+};
+
 in vec4 fragmentPosition;
 in vec4 fragmentNormal;
 in vec2 fragmentTextureCoords;
 in mat4 tangentMatrix;
+in float fragmentVisibility;
 
 out vec4 finalColor;
 
@@ -44,6 +53,7 @@ uniform LightDescriptor lights[32];
 uniform int lightQuantity;
 uniform Material material;
 uniform vec4 cameraPosition;
+uniform FogDescriptor fogDescriptor;
 
 vec4 getCorrectNormal();
 vec3 getPointLightContribution(LightDescriptor pointLight, vec4 normal);
@@ -72,6 +82,9 @@ void main()
 			}
 
 	finalColor = vec4(resultColor, 1.0);
+	
+	if (fogDescriptor.on)
+		finalColor = mix(fogDescriptor.skyColor, finalColor, fragmentVisibility);
 }
 
 vec4 getCorrectNormal()

@@ -56,6 +56,24 @@ void Entity::render(const Shader& shader, const Camera& camera, const std::vecto
 	if (shader.getType() == ShaderType::PHONG || shader.getType() == ShaderType::GOURAD
 		|| shader.getType() == ShaderType::FLAT)
 	{
+		if (camera.isUsingFog())
+		{
+			glm::vec4 skyColor = camera.getFogDescriptor().skyColor;
+			GLuint fogDensityLocation = glGetUniformLocation(shader.getProgram(), "fogDescriptor.density");
+			GLuint fogGradientLocation = glGetUniformLocation(shader.getProgram(), "fogDescriptor.gradient");
+			GLuint fogSkyColorLocation = glGetUniformLocation(shader.getProgram(), "fogDescriptor.skyColor");
+			GLuint fogOnLocation = glGetUniformLocation(shader.getProgram(), "fogDescriptor.on");
+			glUniform1f(fogDensityLocation, camera.getFogDescriptor().density);
+			glUniform1f(fogGradientLocation, camera.getFogDescriptor().gradient);
+			glUniform4f(fogSkyColorLocation, skyColor.x, skyColor.y, skyColor.z, skyColor.w);
+			glUniform1i(fogOnLocation, true);
+		}
+		else
+		{
+			GLuint fogOnLocation = glGetUniformLocation(shader.getProgram(), "fogDescriptor.on");
+			glUniform1i(fogOnLocation, false);
+		}
+
 		glm::vec4 cameraPosition = camera.getPosition();
 		GLuint cameraPositionLocation = glGetUniformLocation(shader.getProgram(), "cameraPosition");
 		GLuint lightQuantityLocation = glGetUniformLocation(shader.getProgram(), "lightQuantity");
