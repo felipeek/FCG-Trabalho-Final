@@ -66,6 +66,7 @@ namespace raw
 		void startShootingAnimation();
 		void startDamageAnimation();
 		void jump();
+		void setSlowMovement(bool slowMovement);
 
 		// GJK & COLLISION
 		const std::vector<BoundingShape>& getBoundingBoxInModelCoordinates() const;
@@ -99,6 +100,7 @@ namespace raw
 		// Movement Constants
 		const static float playerMovementAccelerationLength;
 		const static float maxVelocityLength;
+		const static float maxSlowVelocityLength;
 		const static float frictionStrength;
 
 		// Shot Marks
@@ -135,5 +137,7 @@ namespace raw
 		const glm::vec4 jumpInitialVelocity = glm::vec4(0.0f, 4.0f, 0.0f, 0.0f);
 		glm::vec4 jumpVelocity;
 		glm::vec4 jumpAcceleration;
+
+		bool slowMovement;
 	};
 }

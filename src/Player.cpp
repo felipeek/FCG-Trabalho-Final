@@ -13,6 +13,8 @@ using namespace raw;
 const float Player::playerMovementAccelerationLength = 5.0f;
 // Maximum velocity player can reach
 const float Player::maxVelocityLength = 3.0f;
+// Maximum velocity player can reach in slow mode (shift on)
+const float Player::maxSlowVelocityLength = 1.5f;
 // The strength of ground friction, which always acts against player's movement.
 const float Player::frictionStrength = 5.0f;
 
@@ -66,6 +68,8 @@ Player::Player(Model* model) : Entity(model)
 
 	// Update player
 	// this->update();
+
+	this->slowMovement = false;
 }
 
 void Player::setMovementInterpolationOn(bool movementInterpolationOn)
@@ -377,14 +381,17 @@ void Player::update(Map* map, float deltaTime)
 	if (this->isJumpOn)
 	{
 		// Update jump velocity
+		glm::vec4 playerPosition = this->getTransform().getWorldPosition();
 		glm::vec4 newVelocity = this->jumpAcceleration * deltaTime + this->jumpVelocity;
 		this->jumpVelocity = newVelocity;
 
-		if (this->getTransform().getWorldPosition().y <= 0.0f)
+		if (playerPosition.y <= 0.0f)
 		{
 			this->isJumpOn = false;
 			this->jumpVelocity = glm::vec4(0.0f);
 			this->jumpAcceleration = glm::vec4(0.0f);
+			playerPosition.y = 0.0f;
+			this->getTransform().setWorldPosition(playerPosition);
 		}
 	}
 }
@@ -501,9 +508,10 @@ glm::vec4 Player::getNewPositionForMovement(Map* map, float deltaTime) const
 void Player::setMovementVelocity(const glm::vec4& movementVelocity)
 {
 	float velocityLength = glm::length(movementVelocity);
+	float maxVelocityLength = (this->slowMovement) ? Player::maxSlowVelocityLength : Player::maxVelocityLength;
 
-	if (velocityLength > Player::maxVelocityLength)
-		this->movementVelocity = Player::maxVelocityLength * glm::normalize(movementVelocity);
+	if (velocityLength > maxVelocityLength)
+		this->movementVelocity = maxVelocityLength * glm::normalize(movementVelocity);
 	else
 		this->movementVelocity = movementVelocity;
 }
@@ -793,4 +801,9 @@ void Player::jump()
 		this->jumpVelocity = jumpInitialVelocity;
 		this->jumpAcceleration = jumpGravityAcceleration;
 	}
+}
+
+void Player::setSlowMovement(bool slowMovement)
+{
+	this->slowMovement = slowMovement;
 }

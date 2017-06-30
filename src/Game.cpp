@@ -690,11 +690,18 @@ void Game::processInput(bool* keyState, float deltaTime)
 		keyState[GLFW_KEY_1] = false;					// Force false to only compute one time.
 	}
 
+	// Player Jump
 	if (keyState[GLFW_KEY_SPACE])
 	{
 		this->player->jump();
 		keyState[GLFW_KEY_SPACE] = false;				// Force false to only compute one time.
 	}
+
+	// Player Shift (slow walk)
+	if (keyState[GLFW_KEY_LEFT_SHIFT] || keyState[GLFW_KEY_RIGHT_SHIFT])
+		this->player->setSlowMovement(true);
+	else
+		this->player->setSlowMovement(false);
 
 	//if (keyState[GLFW_KEY_X] && !keyState[GLFW_KEY_Q])
 	//	x += 0.01f;
