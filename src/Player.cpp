@@ -4,6 +4,7 @@
 #include "Collision.h"
 #include "Entity.h"
 #include "Network.h"
+#include "PointLight.h"
 
 #include <GLFW\glfw3.h>
 
@@ -32,6 +33,9 @@ Player::Player(Model* model) : Entity(model)
 
 	// Create player camera
 	this->createCamera();
+
+	// Create player shoot light
+	this->createShootLight();
 
 	// Create player bounding box
 	this->createBoundingBox();
@@ -224,6 +228,24 @@ void Player::createCamera()
 	this->camera = new PerspectiveCamera(position, upVector, viewVector);
 }
 
+// Create Shoot Light
+void Player::createShootLight()
+{
+	glm::vec4 ambientLight = glm::vec4(0.0f, 0.0f, 0.0f, 1.0f);
+	glm::vec4 diffuseLight = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f);
+	glm::vec4 specularLight = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f);
+
+	LightAttenuation shootLightAttenuation = {
+		1.0f,		// Constant Term
+		0.35f,		// Linear Term
+		0.44f		// Quadratic Term
+	};
+
+	this->shootLight = new PointLight(glm::vec4(0.0f, 0.0f, 0.0f, 1.0f), ambientLight, diffuseLight, specularLight);
+	this->shootLight->setAttenuation(shootLightAttenuation);
+	this->shootLight->setOn(false);
+}
+
 // Create player gun model and entity
 void Player::createGun()
 {
@@ -341,6 +363,9 @@ void Player::update(Map* map, float deltaTime)
 	this->gun->getTransform().setWorldPosition(this->getTransform().getWorldPosition());
 	//this->gun->getTransform().setWorldRotation(glm::vec3(this->camera.getYaw(), this->camera.getPitch(), 0));
 	this->gun->getTransform().setWorldRotation(glm::vec3(0.0f, -modelRotation, 0.0f));
+
+	// Refresh shoot light
+	this->shootLight->setPosition(this->camera->getPosition());
 
 	// Refresh fire animation
 	if (this->isShootingAnimationOn)
@@ -666,6 +691,7 @@ void Player::setIsShootingAnimationOn(bool isShootingAnimationOn)
 {
 	this->isShootingAnimationOn = isShootingAnimationOn;
 	this->gun->getModel()->getMeshes()[5]->setVisible(isShootingAnimationOn);
+	this->shootLight->setOn(isShootingAnimationOn);
 }
 
 void Player::setIsDamageAnimationOn(bool isDamageAnimationOn)
@@ -824,4 +850,9 @@ void Player::jump()
 void Player::setSlowMovement(bool slowMovement)
 {
 	this->slowMovement = slowMovement;
+}
+
+Light* Player::getShootLight()
+{
+	return this->shootLight;
 }

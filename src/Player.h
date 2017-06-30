@@ -9,6 +9,7 @@
 namespace raw
 {
 	class Network;
+	class PointLight;
 
 	enum class PlayerBodyPart
 	{
@@ -71,6 +72,7 @@ namespace raw
 		void startDamageAnimation();
 		void jump();
 		void setSlowMovement(bool slowMovement);
+		Light* getShootLight();
 
 		// GJK & COLLISION
 		const std::vector<BoundingShape>& getBoundingBoxInModelCoordinates() const;
@@ -81,6 +83,7 @@ namespace raw
 		void createBoundingBox();
 		void createGun();
 		void createAim();
+		void createShootLight();
 		void setIsShootingAnimationOn(bool isShootingAnimationOn);
 		void setIsDamageAnimationOn(bool isDamageAnimationOn);
 		void updateMovement(Map* map, float deltaTime);
@@ -99,6 +102,7 @@ namespace raw
 		Entity* firstPersonGun;			// 2D Gun (Fixed in screen)
 		Entity* firstPersonGunFiring;	// 2D Gun Firing (Fixed in screen)
 		Entity* damageAnimationEntity;	// 2D damageAnimation
+		PointLight* shootLight;
 
 		// Movement Constants
 		const static float playerMovementAccelerationLength;

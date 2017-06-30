@@ -26,8 +26,8 @@ void Game::init(bool singlePlayer)
 
 	// Init Network
 	if (!this->singlePlayer)
-		//this->network = new Network(this, "177.134.42.232", 8888);
-		this->network = new Network(this, "127.0.0.1", 8888);
+		this->network = new Network(this, "177.134.42.232", 8888);
+		//this->network = new Network(this, "127.0.0.1", 8888);
 
 	// Create sky
 	this->skybox = new Skybox();
@@ -46,6 +46,7 @@ void Game::init(bool singlePlayer)
 	this->models.push_back(playerModel);
 	this->player = new Player(playerModel);
 	this->player->getTransform().setWorldScale(glm::vec3(0.12f, 0.12f, 0.12f));
+	this->lights.push_back(this->player->getShootLight());						// Push Shoot Light
 
 	// Create Second Player
 	if (!this->singlePlayer)
@@ -53,6 +54,7 @@ void Game::init(bool singlePlayer)
 		this->secondPlayer = new Player(playerModel);
 		this->secondPlayer->getTransform().setWorldScale(glm::vec3(0.12f, 0.12f, 0.12f));
 		this->secondPlayer->setMovementInterpolationOn(true);
+		this->lights.push_back(this->secondPlayer->getShootLight());						// Push Shoot Light
 	}
 
 	// Create Lights
@@ -176,10 +178,13 @@ void Game::updateCameras(float deltaTime)
 {
 	// Update LookAt Camera
 	static const float lookAtCameraDistance = 2.2f;
-	glm::vec4 playerPosition = this->player->getTransform().getWorldPosition();
+	glm::vec4 playerPosition = this->player->getCamera()->getPosition();
 	glm::vec4 distanceVector = -lookAtCameraDistance * glm::normalize(this->lookAtCamera->getViewVector());
 	glm::vec4 lookAtNewPosition = playerPosition + distanceVector;
 	this->lookAtCamera->setPosition(lookAtNewPosition);
+	// If lookAt camera is selected, update player look direction to match camera direction.
+	if (this->selectedCamera == CameraType::LOOKAT)
+		this->player->changeLookDirection(glm::normalize(-distanceVector));
 
 	// Update Perspective Free Camera Position
 	glm::vec4 freeCameraPosition = this->freeCamera->getPosition();
