@@ -120,7 +120,7 @@ vec3 getPointLightContribution(LightDescriptor pointLight, vec4 normal)
 	vec4 fragmentToPointLightVec = normalize(pointLight.position - fragmentPosition);
 	
 	if (length(fragmentToPointLightVec) > discardLength)
-		return vec4(0.0);
+		return vec3(0.0);
 
 	// Ambient Color
 	vec4 pointAmbientColor = pointLight.ambientColor * texture(material.diffuseMap, fragmentTextureCoords);

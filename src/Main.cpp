@@ -86,7 +86,7 @@ int main()
 
 	game = new raw::Game();
 
-	game->init(true);
+	game->init(false);
 	game->processWindowResize(windowWidth, windowHeight);	// Force game to process window size
 
 	glEnable(GL_DEPTH_TEST);

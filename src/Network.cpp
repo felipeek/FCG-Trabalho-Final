@@ -14,7 +14,8 @@ enum PacketType
 {
 	PLAYER_INFORMATION = 1,
 	PLAYER_FIRE_ANIMATION = 2,
-	PLAYER_FIRE_HIT = 3,
+	PLAYER_FIRE_ANIMATION_WITH_WALL_SHOT_MARK = 3,
+	PLAYER_FIRE_HIT = 4,
 };
 
 Network::Network(Game* game, char* peerIp, unsigned int peerPort)
@@ -62,6 +63,23 @@ void Network::sendPlayerFireAnimation()
 	this->udpSender->sendMessage(buffer, bufferSize);
 }
 
+// Send fire animation + wall shot mark position
+void Network::sendPlayerFireAnimation(const glm::vec4& wallShotMarkPosition)
+{
+	if (wallShotMarkPosition == glm::vec4(0.0f))
+	{
+		int i = 0;
+		++i;
+	}
+	const unsigned int packetId = PLAYER_FIRE_ANIMATION_WITH_WALL_SHOT_MARK;
+
+	const unsigned int bufferSize = sizeof(packetId) + sizeof(wallShotMarkPosition);
+	char buffer[bufferSize];
+	memcpy(buffer, &packetId, sizeof(packetId));
+	memcpy(buffer + sizeof(packetId), &wallShotMarkPosition, sizeof(wallShotMarkPosition));
+	this->udpSender->sendMessage(buffer, bufferSize);
+}
+
 void Network::sendPlayerFireHitAndAnimation(int damage)
 {
 	const unsigned int packetId = PLAYER_FIRE_HIT;
@@ -90,6 +108,9 @@ void Network::receiveAndProcessPackets()
 				break;
 			case PLAYER_FIRE_ANIMATION:
 				this->processPlayerFireAnimationPacket(buffer + sizeof(packetId));
+				break;
+			case PLAYER_FIRE_ANIMATION_WITH_WALL_SHOT_MARK:
+				this->processPlayerFireAnimationWithWallMarksPacket(buffer + sizeof(packetId));
 				break;
 			case PLAYER_FIRE_HIT:
 				this->processPlayerFireHitPacket(buffer + sizeof(packetId));
@@ -140,6 +161,23 @@ void Network::processPlayerFireAnimationPacket(char* buffer)
 
 	// Process Packet
 	secondPlayer->startShootingAnimation();
+}
+
+void Network::processPlayerFireAnimationWithWallMarksPacket(char* buffer)
+{
+	Player* secondPlayer = this->boundGame->getSecondPlayer();
+	glm::vec4 wallShotMarkPosition = *(glm::vec4*)(buffer);
+
+#ifdef DEBUG
+	std::cout << "Packet Received:" << std::endl;
+	std::cout << "ID: " << PLAYER_FIRE_ANIMATION_WITH_WALL_SHOT_MARK << std::endl;
+	std::cout << "Wall Shot Mark Position: <" << wallShotMarkPosition.x << ", " << wallShotMarkPosition.y
+		<< ", " << wallShotMarkPosition.z << ", " << wallShotMarkPosition.w << ">" << std::endl;
+#endif
+
+	// Process Packet
+	secondPlayer->startShootingAnimation();
+	secondPlayer->createShotMark(wallShotMarkPosition, glm::vec4(1.0f, 165/255.0f, 0.0f, 1.0f));
 }
 
 void Network::processPlayerFireHitPacket(char* buffer)

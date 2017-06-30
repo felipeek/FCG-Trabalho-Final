@@ -44,6 +44,10 @@ namespace raw
 		void setHp(int hp);
 		void removeHp(int damage);
 		int damage(PlayerBodyPart bodyPart);
+		void setWallShotMarkColor(const glm::vec4& wallShotMarkColor);
+		void createShotMark(glm::vec4 position, glm::vec4 color);
+		void setRenderShotMarks(bool renderShotMarks);
+		bool isRenderingShotMarks() const;
 		void updateVelocityAndAccelerationBasedOnDirection(glm::vec4 direction);
 		glm::vec4 getVelocity() const;
 		glm::vec4 getAcceleration() const;
@@ -79,7 +83,6 @@ namespace raw
 		void createAim();
 		void setIsShootingAnimationOn(bool isShootingAnimationOn);
 		void setIsDamageAnimationOn(bool isDamageAnimationOn);
-		void createShotMark(glm::vec4 position, glm::vec4 color);
 		void updateMovement(Map* map, float deltaTime);
 		glm::vec4 getNewPositionForMovement(Map* map, float deltaTime) const;
 		void setMovementVelocity(const glm::vec4& movementVelocity);
@@ -104,9 +107,10 @@ namespace raw
 		const static float frictionStrength;
 
 		// Shot Marks
-		static glm::vec4 wallShotMarkColor;
+		glm::vec4 wallShotMarkColor;
 		std::vector<ShotMark> shotMarks;
 		Model* shotMarkModel;
+		bool bRenderShotMarks;
 
 		// GJK & COLLISION
 		Entity* boundingBoxEntity;

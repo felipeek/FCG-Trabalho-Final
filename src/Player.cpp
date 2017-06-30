@@ -12,13 +12,11 @@ using namespace raw;
 // Amount of acceleration player receives when user press movement key
 const float Player::playerMovementAccelerationLength = 5.0f;
 // Maximum velocity player can reach
-const float Player::maxVelocityLength = 3.0f;
+const float Player::maxVelocityLength = 2.5f;
 // Maximum velocity player can reach in slow mode (shift on)
 const float Player::maxSlowVelocityLength = 1.5f;
 // The strength of ground friction, which always acts against player's movement.
-const float Player::frictionStrength = 5.0f;
-
-glm::vec4 Player::wallShotMarkColor = glm::vec4(0.5f, 0.5f, 1.0f, 1.0f);
+const float Player::frictionStrength = 20.0f;
 
 // Create player
 Player::Player(Model* model) : Entity(model)
@@ -65,6 +63,10 @@ Player::Player(Model* model) : Entity(model)
 	this->isJumpOn = false;
 	this->jumpVelocity = glm::vec4(0.0f);
 	this->jumpAcceleration = glm::vec4(0.0f);
+
+	// Wall Shot Marks
+	this->wallShotMarkColor = glm::vec4(0.5f, 0.5f, 1.0f, 1.0f);
+	this->bRenderShotMarks = true;
 
 	// Update player
 	// this->update();
@@ -280,8 +282,9 @@ Camera* Player::getCamera()
 // Render all shotmarks
 void Player::renderShotMarks(const Shader& shader, const Camera& camera) const
 {
-	for (unsigned int i = 0; i < this->shotMarks.size(); ++i)
-		this->shotMarks[i].entity->render(shader, camera, this->shotMarks[i].color);
+	if (this->bRenderShotMarks)
+		for (unsigned int i = 0; i < this->shotMarks.size(); ++i)
+			this->shotMarks[i].entity->render(shader, camera, this->shotMarks[i].color);
 }
 
 // Render gun
@@ -429,7 +432,7 @@ void Player::updateMovement(Map* map, float deltaTime)
 	// -> Since the dot between velocity and newVelocity is -1, the velocity has just changed it's
 	// direction.
 	// In this situation, we just set velocity to 0. Otherwise, it would oscillate indefinitely.
-	if (this->movementVelocity == glm::vec4(0.0f) && glm::dot(this->movementVelocity, newVelocity) < 0.0f)
+	if (this->movementAcceleration == glm::vec4(0.0f) && glm::dot(this->movementVelocity, newVelocity) < 0.0f)
 		this->setMovementVelocity(glm::vec4(0.0f));
 	else
 		this->setMovementVelocity(newVelocity);
@@ -563,11 +566,11 @@ void Player::shoot(Player* secondPlayer, const std::vector<MapWallDescriptor>& m
 		else
 		{
 			// Wall is Closer
-			this->createShotMark(mapWallsCollisionDescriptor.worldPosition, wallShotMarkColor);
+			this->createShotMark(mapWallsCollisionDescriptor.worldPosition, this->wallShotMarkColor);
 
 			// If a network was received, send just a fire animation to second player
 			if (network)
-				network->sendPlayerFireAnimation();
+				network->sendPlayerFireAnimation(mapWallsCollisionDescriptor.worldPosition);
 		}
 	}
 	// If there was a collision with second player only
@@ -583,11 +586,11 @@ void Player::shoot(Player* secondPlayer, const std::vector<MapWallDescriptor>& m
 	// If there was a collision with wall only
 	if (!playerCollisionDescriptor.collision.collide && mapWallsCollisionDescriptor.collide)
 	{
-		this->createShotMark(mapWallsCollisionDescriptor.worldPosition, wallShotMarkColor);
+		this->createShotMark(mapWallsCollisionDescriptor.worldPosition, this->wallShotMarkColor);
 
 		// If a network was received, send just a fire animation to second player
 		if (network)
-			network->sendPlayerFireAnimation();
+			network->sendPlayerFireAnimation(mapWallsCollisionDescriptor.worldPosition);
 	}
 	// If there was no collision
 	else
@@ -618,7 +621,7 @@ void Player::shoot(const std::vector<MapWallDescriptor>& mapWallDescriptors)
 
 	// If there was a collision
 	if (mapWallsCollisionDescriptor.collide)
-		this->createShotMark(mapWallsCollisionDescriptor.worldPosition, wallShotMarkColor);
+		this->createShotMark(mapWallsCollisionDescriptor.worldPosition, this->wallShotMarkColor);
 }
 
 // Start the shooting animation
@@ -773,6 +776,11 @@ int Player::damage(PlayerBodyPart bodyPart)
 	}
 }
 
+void Player::setWallShotMarkColor(const glm::vec4& wallShotMarkColor)
+{
+	this->wallShotMarkColor = wallShotMarkColor;
+}
+
 glm::vec4 Player::getVelocity() const
 {
 	return this->movementVelocity + this->jumpVelocity;
@@ -791,6 +799,16 @@ void Player::createShotMark(glm::vec4 position, glm::vec4 color)
 	shotMark.entity = shotMarkEntity;
 	shotMark.color = color;
 	this->shotMarks.push_back(shotMark);
+}
+
+void Player::setRenderShotMarks(bool renderShotMarks)
+{
+	this->bRenderShotMarks = renderShotMarks;
+}
+
+bool Player::isRenderingShotMarks() const
+{
+	return this->bRenderShotMarks;
 }
 
 void Player::jump()

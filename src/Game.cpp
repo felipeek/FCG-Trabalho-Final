@@ -26,8 +26,8 @@ void Game::init(bool singlePlayer)
 
 	// Init Network
 	if (!this->singlePlayer)
+		//this->network = new Network(this, "177.134.42.232", 8888);
 		this->network = new Network(this, "127.0.0.1", 8888);
-		//this->network = new Network(this, "127.0.0.1", 8888);
 
 	// Create sky
 	this->skybox = new Skybox();
@@ -279,7 +279,7 @@ void Game::processMouseChange(double xPos, double yPos)
 	static bool firstTime = true;
 	// This constant is basically the mouse sensibility.
 	// @TODO: Allow mouse sensibility to be configurable.
-	static const float cameraMouseSpeed = 0.002f;
+	static const float cameraMouseSpeed = 0.001f;
 	
 	if (!firstTime)
 	{
@@ -702,6 +702,14 @@ void Game::processInput(bool* keyState, float deltaTime)
 		this->player->setSlowMovement(true);
 	else
 		this->player->setSlowMovement(false);
+
+	// Toggle render shot marks
+	if (keyState[GLFW_KEY_R])
+	{
+		this->player->setRenderShotMarks(!this->player->isRenderingShotMarks());
+		this->secondPlayer->setRenderShotMarks(!this->secondPlayer->isRenderingShotMarks());
+		keyState[GLFW_KEY_R] = false;				// Force false to only compute one time.
+	}
 
 	//if (keyState[GLFW_KEY_X] && !keyState[GLFW_KEY_Q])
 	//	x += 0.01f;
