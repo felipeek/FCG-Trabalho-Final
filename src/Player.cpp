@@ -9,6 +9,13 @@
 
 using namespace raw;
 
+// Amount of acceleration player receives when user press movement key
+const float Player::playerMovementAccelerationLength = 5.0f;
+// Maximum velocity player can reach
+const float Player::maxVelocityLength = 3.0f;
+// The strength of ground friction, which always acts against player's movement.
+const float Player::frictionStrength = 5.0f;
+
 glm::vec4 Player::wallShotMarkColor = glm::vec4(0.5f, 0.5f, 1.0f, 1.0f);
 
 // Create player
@@ -18,6 +25,10 @@ Player::Player(Model* model) : Entity(model)
 	this->hp = initialHp;
 	glm::vec4 initialPosition = glm::vec4(1.7f, 0.0f, 1.7f, 1.0f);
 	this->getTransform().setWorldPosition(initialPosition);
+
+	// Set initial velocity and acceleration
+	this->movementVelocity = glm::vec4(0.0f, 0.0f, 0.0f, 0.0f);
+	this->movementAcceleration = glm::vec4(0.0f, 0.0f, 0.0f, 0.0f);
 
 	// Create player camera
 	this->createCamera();
@@ -37,45 +48,55 @@ Player::Player(Model* model) : Entity(model)
 	this->shotMarkModel = new Model(shotMarkModelMeshes);
 
 	// Create damage animation
-	const float damageAnimationScale = 2.0f;
+	const float damageAnimationScale = 3.6f;
 	Texture* damageAnimationTexture = Texture::load(".\\res\\art\\damage.png");
 	this->damageAnimationEntity = new Entity(new Model(std::vector<Mesh*>({new Quad(damageAnimationTexture)})));
 	this->damageAnimationEntity->getTransform().setWorldScale(glm::vec3(damageAnimationScale,
 		damageAnimationScale, damageAnimationScale));
+	this->isDamageAnimationOn = false;
 
 	// Movement Interpolation
 	this->isMovementInterpolationOn = false;
-	this->movementInterpolationPosition = glm::vec4(0.0f);
+	this->isInterpolationActive = false;
+
+	// Jump
+	this->isJumpOn = false;
+	this->jumpVelocity = glm::vec4(0.0f);
+	this->jumpAcceleration = glm::vec4(0.0f);
 
 	// Update player
 	// this->update();
 }
 
-// This function will start moving the player towards "position"
-// Used in multiplayer mode to simulate the enemy movement
-void Player::startMovementInterpolation(const glm::vec4& position)
+void Player::setMovementInterpolationOn(bool movementInterpolationOn)
 {
-	if (this->getTransform().getWorldPosition() != position)
+	this->isMovementInterpolationOn = movementInterpolationOn;
+}
+
+void Player::pushMovementInterpolation(const glm::vec4& initialPosition, const glm::vec4& velocity,
+	const glm::vec4& acceleration)
+{
+	if (this->getTransform().getWorldPosition() != initialPosition)
 	{
-		this->isMovementInterpolationOn = true;
-		this->movementInterpolationPosition = position;
+		this->isInterpolationActive = true;
+		this->finalPosition = initialPosition;
+		this->currentVelocity = this->nextVelocity;
+		this->nextVelocity = glm::length(velocity);
 	}
 }
 
 // Interpolate player movement if interpolation is on
 void Player::interpolateMovement(float deltaTime)
 {
-	static const float playerSpeed = 3.5f;
-
-	if (this->isMovementInterpolationOn)
+	if (this->isMovementInterpolationOn && this->isInterpolationActive)
 	{
 		// Calculate new position
 		glm::vec4 currentPosition = this->getTransform().getWorldPosition();
-		glm::vec4 direction = glm::normalize(this->movementInterpolationPosition - currentPosition);
-		glm::vec4 newPosition = currentPosition + playerSpeed * deltaTime * direction;
-		newPosition.y = currentPosition.y;		// Keep y
+		glm::vec4 direction = glm::normalize(this->finalPosition - currentPosition);
+		glm::vec4 newPosition = currentPosition + this->currentVelocity * deltaTime * direction;
+		//newPosition.y = currentPosition.y;		// Keep y
 
-		float playerToFinalPositionDistance = glm::length(currentPosition - this->movementInterpolationPosition);
+		float playerToFinalPositionDistance = glm::length(currentPosition - this->finalPosition);
 		float playerToNewPositionDistance = glm::length(currentPosition - newPosition);
 
 		// If the distance from player to the new position is greater than the distance from
@@ -83,8 +104,8 @@ void Player::interpolateMovement(float deltaTime)
 		// just set player position to be the final interpolation position
 		if (playerToFinalPositionDistance <= playerToNewPositionDistance)
 		{
-			newPosition = this->movementInterpolationPosition;
-			this->isMovementInterpolationOn = false;
+			newPosition = this->finalPosition;
+			this->isInterpolationActive = false;
 		}
 
 		this->getTransform().setWorldPosition(newPosition);
@@ -291,14 +312,14 @@ void Player::renderScreenImages(const Shader& shader) const
 }
 
 // Update player
-void Player::update(float deltaTime)
+void Player::update(Map* map, float deltaTime)
 {
 	glm::vec4 playerPosition = this->getTransform().getWorldPosition();
 
 	// Refresh camera's position
 	const float cameraHeight = 0.6f;
 	glm::vec4 cameraPosition = playerPosition;
-	cameraPosition.y = cameraHeight;
+	cameraPosition.y += cameraHeight;
 	this->camera->setPosition(cameraPosition);
 
 	// Refresh model rotation
@@ -346,9 +367,150 @@ void Player::update(float deltaTime)
 		this->setHp(this->initialHp);
 	}
 
-	// Update player position interpolation, if activated
+	// Update player movement
 	if (this->isMovementInterpolationOn)
 		this->interpolateMovement(deltaTime);
+	else
+		this->updateMovement(map, deltaTime);
+
+	// Update jump
+	if (this->isJumpOn)
+	{
+		// Update jump velocity
+		glm::vec4 newVelocity = this->jumpAcceleration * deltaTime + this->jumpVelocity;
+		this->jumpVelocity = newVelocity;
+
+		if (this->getTransform().getWorldPosition().y <= 0.0f)
+		{
+			this->isJumpOn = false;
+			this->jumpVelocity = glm::vec4(0.0f);
+			this->jumpAcceleration = glm::vec4(0.0f);
+		}
+	}
+}
+
+void Player::updateMovement(Map* map, float deltaTime)
+{
+	/* ACCELERATION CALCULATION */
+
+	// realAcceleration is the acceleration that will be used to calculate the movement
+	// frictionAcceleration is the acceleration caused by player's friction with ground
+	glm::vec4 realAcceleration, frictionAcceleration;
+
+	// Calculate frictionAcceleration. It's direction is the opposite of player's velocity and its length
+	// is given by frictionStrength constant
+	if (this->movementVelocity != glm::vec4(0.0f))
+		frictionAcceleration = -Player::frictionStrength * glm::normalize(this->movementVelocity);
+	else
+		frictionAcceleration = glm::vec4(0.0f);
+
+	// Calculate realAcceleration. If there is a nin-zero player acceleration, realAcceleration will be equal.
+	// If player acceleration is the zero vector, realAcceleration will be the frictionAcceleration.
+	if (this->movementAcceleration == glm::vec4(0.0f))
+		realAcceleration = frictionAcceleration;
+	else
+		realAcceleration = this->movementAcceleration;
+
+	/* VELOCITY CALCULATION AND UPDATE */
+
+	// Calculate player's new velocity based on the realAceleration vector
+	glm::vec4 newVelocity = realAcceleration * deltaTime + this->movementVelocity;
+
+	// If acceleration is 0 and the dot product between the current velocity and new velocity
+	// is negative (in this case it will be -1 or 1, actually. So it is -1), it means that:
+	// -> Since acceleration is 0, the only acceleration acting on the player is caused by the friction
+	// -> Since the dot between velocity and newVelocity is -1, the velocity has just changed it's
+	// direction.
+	// In this situation, we just set velocity to 0. Otherwise, it would oscillate indefinitely.
+	if (this->movementVelocity == glm::vec4(0.0f) && glm::dot(this->movementVelocity, newVelocity) < 0.0f)
+		this->setMovementVelocity(glm::vec4(0.0f));
+	else
+		this->setMovementVelocity(newVelocity);
+
+	/* POSITION CALCULATION (finally, the movement) */
+
+	glm::vec4 newPosition = this->getNewPositionForMovement(map, deltaTime);
+	this->getTransform().setWorldPosition(newPosition);
+}
+
+// This method receives a movement direction and updates player's velocity and acceleration based on it.
+void Player::updateVelocityAndAccelerationBasedOnDirection(glm::vec4 direction)
+{
+	if (direction != glm::vec4(0.0f))
+	{
+		// Calculate new acceleration based on the direction and constant playerMovementAccelerationLength
+		glm::vec4 newAcceleration = Player::playerMovementAccelerationLength * glm::normalize(direction);
+
+		// If player acceleration is the same as newAcceleration, we are fine.
+		// However, if acceleration != newAcceleration, we must change the velocity to force the player to
+		// change its velocity instantaneously. This way, if, for example, the new direction is 100% opposite to the
+		// current velocity, the velocity will be set to 0 to force a reset. Otherwise, there would be a non-realistic
+		// "spring" effect.
+		if (this->movementAcceleration != newAcceleration)
+		{
+			float dot = glm::dot(this->movementVelocity, newAcceleration);
+
+			// Velocity to acceleration projection.
+			glm::vec4 projVelocityAcceleration = ((dot / (pow(glm::length(newAcceleration), 2)) * newAcceleration));
+
+			// Change velocity appropriately. The projection is used for situations where the new acceleration do not
+			// point to the same direction to the old acceleration, but is close (difference less than 90 degrees).
+			if (dot > 0)
+				this->setMovementVelocity(projVelocityAcceleration);
+			else
+				this->setMovementVelocity(glm::vec4(0.0f));
+		}
+
+		// Replace acceleration
+		this->setMovementAcceleration(newAcceleration);
+	}
+	else
+	{
+		// If direction is 0, acceleration should also be 0.
+		this->setMovementAcceleration(glm::vec4(0.0f));
+	}
+}
+
+// This function will find the new position for the player based on its current position, its velocity and the map.
+// If there is a collision, instead of just returning the original position (no movement), try to return
+// the best position based on the map. (Try to slide when colliding with walls).
+// Method will only work for map where walls are parallel to X and Z axes.
+glm::vec4 Player::getNewPositionForMovement(Map* map, float deltaTime) const
+{
+	glm::vec4 auxiliarVector;
+	glm::vec4 playerPosition = this->getTransform().getWorldPosition();
+	glm::vec4 newPos = playerPosition + deltaTime * this->getVelocity();
+
+	// Check if there is a collision in x coordinate
+	auxiliarVector = playerPosition;
+	auxiliarVector.x = newPos.x;
+	TerrainType terrainType = map->getTerrainTypeForMovement(auxiliarVector);
+	if (terrainType != TerrainType::FREE)
+		newPos.x = playerPosition.x;
+
+	// Check if there is a collision in z coordinate
+	auxiliarVector = playerPosition;
+	auxiliarVector.z = newPos.z;
+	terrainType = map->getTerrainTypeForMovement(auxiliarVector);
+	if (terrainType != TerrainType::FREE)
+		newPos.z = playerPosition.z;
+
+	return newPos;
+}
+
+void Player::setMovementVelocity(const glm::vec4& movementVelocity)
+{
+	float velocityLength = glm::length(movementVelocity);
+
+	if (velocityLength > Player::maxVelocityLength)
+		this->movementVelocity = Player::maxVelocityLength * glm::normalize(movementVelocity);
+	else
+		this->movementVelocity = movementVelocity;
+}
+
+void Player::setMovementAcceleration(const glm::vec4& movementAcceleration)
+{
+	this->movementAcceleration = movementAcceleration;
 }
 
 // Shoot, test collisions with second player and map walls.
@@ -603,6 +765,16 @@ int Player::damage(PlayerBodyPart bodyPart)
 	}
 }
 
+glm::vec4 Player::getVelocity() const
+{
+	return this->movementVelocity + this->jumpVelocity;
+}
+
+glm::vec4 Player::getAcceleration() const
+{
+	return this->movementAcceleration + this->jumpAcceleration;
+}
+
 void Player::createShotMark(glm::vec4 position, glm::vec4 color)
 {
 	ShotMark shotMark;
@@ -611,4 +783,14 @@ void Player::createShotMark(glm::vec4 position, glm::vec4 color)
 	shotMark.entity = shotMarkEntity;
 	shotMark.color = color;
 	this->shotMarks.push_back(shotMark);
+}
+
+void Player::jump()
+{
+	if (!this->isJumpOn)
+	{
+		this->isJumpOn = true;
+		this->jumpVelocity = jumpInitialVelocity;
+		this->jumpAcceleration = jumpGravityAcceleration;
+	}
 }

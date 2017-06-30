@@ -62,11 +62,13 @@ vec3 getDirectionalLightContribution(LightDescriptor pointLight, vec4 normal);
 
 void main()
 {
+
 	vec3 resultColor = vec3(0.0, 0.0, 0.0);
 	vec4 normal = getCorrectNormal();
 	int i;
-
+	
 	for (i=0; i<lightQuantity; ++i)
+	//for (i=0; i<19; ++i)
 		if (lights[i].isOn)
 			switch(lights[i].type)
 			{
@@ -114,11 +116,16 @@ vec4 getCorrectNormal()
 
 vec3 getPointLightContribution(LightDescriptor pointLight, vec4 normal)
 {
+	const float discardLength = 10.0;
+	vec4 fragmentToPointLightVec = normalize(pointLight.position - fragmentPosition);
+	
+	if (length(fragmentToPointLightVec) > discardLength)
+		return vec4(0.0);
+
 	// Ambient Color
 	vec4 pointAmbientColor = pointLight.ambientColor * texture(material.diffuseMap, fragmentTextureCoords);
 
 	// Diffuse Color
-	vec4 fragmentToPointLightVec = normalize(pointLight.position - fragmentPosition);
 	float pointDiffuseContribution = max(0, dot(fragmentToPointLightVec, normal));
 	vec4 pointDiffuseColor = pointDiffuseContribution * pointLight.diffuseColor * texture(material.diffuseMap, fragmentTextureCoords);
 	

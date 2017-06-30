@@ -26,7 +26,7 @@ void Game::init(bool singlePlayer)
 
 	// Init Network
 	if (!this->singlePlayer)
-		this->network = new Network(this, "189.114.106.246", 8888);
+		this->network = new Network(this, "127.0.0.1", 8888);
 		//this->network = new Network(this, "127.0.0.1", 8888);
 
 	// Create sky
@@ -52,6 +52,7 @@ void Game::init(bool singlePlayer)
 	{
 		this->secondPlayer = new Player(playerModel);
 		this->secondPlayer->getTransform().setWorldScale(glm::vec3(0.12f, 0.12f, 0.12f));
+		this->secondPlayer->setMovementInterpolationOn(true);
 	}
 
 	// Create Lights
@@ -144,19 +145,19 @@ void Game::update(float deltaTime)
 	const Camera* playerCamera = this->player->getCamera();
 
 	// How many times, per second, information about the player should be sent to the second player (multiplayer only)
-	static const int networkUpdatesPerSecond = 10;
+	static const float networkUpdatesPerSecond = 20.0f;
 
 	// Update player
-	this->player->update(deltaTime);
+	this->player->update(map, deltaTime);
 
 	// Update cameras
-	this->updateCameras();
+	this->updateCameras(deltaTime);
 
 	// If multiplayer
 	if (!this->singlePlayer)
 	{
 		// Update second player
-		this->secondPlayer->update(deltaTime);
+		this->secondPlayer->update(map, deltaTime);
 
 		// Check if new packets arrived from the second player.
 		this->network->receiveAndProcessPackets();
@@ -171,7 +172,7 @@ void Game::update(float deltaTime)
 	}
 }
 
-void Game::updateCameras()
+void Game::updateCameras(float deltaTime)
 {
 	// Update LookAt Camera
 	static const float lookAtCameraDistance = 2.2f;
@@ -179,6 +180,10 @@ void Game::updateCameras()
 	glm::vec4 distanceVector = -lookAtCameraDistance * glm::normalize(this->lookAtCamera->getViewVector());
 	glm::vec4 lookAtNewPosition = playerPosition + distanceVector;
 	this->lookAtCamera->setPosition(lookAtNewPosition);
+
+	// Update Perspective Free Camera Position
+	glm::vec4 freeCameraPosition = this->freeCamera->getPosition();
+	this->freeCamera->setPosition(freeCameraPosition + deltaTime * this->freeCameraVelocity);
 
 	// Update Ortho Free Camera (to match Perspective Free Camera)
 	this->orthoFreeCamera->setPosition(freeCamera->getPosition());
@@ -191,7 +196,7 @@ void Game::updateCameras()
 	if (this->useFog)
 	{
 		FogDescriptor fogDescriptor;
-		fogDescriptor.density = 0.3f;
+		fogDescriptor.density = 0.16f;
 		fogDescriptor.gradient = 1.5f;
 		fogDescriptor.skyColor = this->skybox->getSkyColor();
 
@@ -408,6 +413,7 @@ void Game::createCameras()
 	this->lookAtCamera = new PerspectiveCamera(freeCameraInitialPosition, freeCameraInitialUpVector, freeCameraInitialViewVector);
 
 	this->selectedCamera = CameraType::PLAYER;
+	this->freeCameraVelocity = glm::vec4(0.0f);
 }
 
 // Create all lights
@@ -458,75 +464,75 @@ void Game::createLights()
 	this->lights.push_back(streetLamp);
 	this->streetLamps.push_back(streetLamp);
 
-	streetLampPosition = glm::vec4(3.842f, 0.56f, 8.157f, 1.0f);
-	streetLamp = this->createStreetLamp(streetLampPosition, -PI_F/2.0f);
-	this->lights.push_back(streetLamp);
-	this->streetLamps.push_back(streetLamp);
-
-	streetLampPosition = glm::vec4(1.164f, 0.56f, 19.1359f, 1.0f);
-	streetLamp = this->createStreetLamp(streetLampPosition, PI_F/2.0f);
-	this->lights.push_back(streetLamp);
-	this->streetLamps.push_back(streetLamp);
-
-	streetLampPosition = glm::vec4(11.686f, 0.56f, 22.84f, 1.0f);
-	streetLamp = this->createStreetLamp(streetLampPosition, PI_F);
-	this->lights.push_back(streetLamp);
-	this->streetLamps.push_back(streetLamp);
-
-	streetLampPosition = glm::vec4(18.836f, 0.56f, 12.93f, 1.0f);
-	streetLamp = this->createStreetLamp(streetLampPosition, -PI_F/2.0f);
-	this->lights.push_back(streetLamp);
-	this->streetLamps.push_back(streetLamp);
-
-	streetLampPosition = glm::vec4(7.0f, 0.56f, 22.84f, 1.0f);
-	streetLamp = this->createStreetLamp(streetLampPosition, PI_F);
-	this->lights.push_back(streetLamp);
-	this->streetLamps.push_back(streetLamp);
-
-	streetLampPosition = glm::vec4(20.766f, 0.56f, 22.84f, 1.0f);
-	streetLamp = this->createStreetLamp(streetLampPosition, PI_F);
-	this->lights.push_back(streetLamp);
-	this->streetLamps.push_back(streetLamp);
-
-	streetLampPosition = glm::vec4(16.1714f, 0.56f, 21.47f, 1.0f);
-	streetLamp = this->createStreetLamp(streetLampPosition, PI_F / 2);
-	this->lights.push_back(streetLamp);
-	this->streetLamps.push_back(streetLamp);
-
-	streetLampPosition = glm::vec4(19.405f, 0.56f, 1.8406f, 1.0f);
-	streetLamp = this->createStreetLamp(streetLampPosition, PI_F);
-	this->lights.push_back(streetLamp);
-	this->streetLamps.push_back(streetLamp);
-
-	streetLampPosition = glm::vec4(11.415f, 0.56f, 13.836f, 1.0f);
-	streetLamp = this->createStreetLamp(streetLampPosition, PI_F);
-	this->lights.push_back(streetLamp);
-	this->streetLamps.push_back(streetLamp);
-
-	streetLampPosition = glm::vec4(16.164f, 0.56f, 7.348f, 1.0f);
-	streetLamp = this->createStreetLamp(streetLampPosition, PI_F / 2.0f);
-	this->lights.push_back(streetLamp);
-	this->streetLamps.push_back(streetLamp);
-
-	streetLampPosition = glm::vec4(6.836f, 0.56f, 16.53f, 1.0f);
-	streetLamp = this->createStreetLamp(streetLampPosition, -PI_F / 2.0f);
-	this->lights.push_back(streetLamp);
-	this->streetLamps.push_back(streetLamp);
-
-	streetLampPosition = glm::vec4(22.838f, 0.56f, 18.31f, 1.0f);
-	streetLamp = this->createStreetLamp(streetLampPosition, -PI_F / 2.0f);
-	this->lights.push_back(streetLamp);
-	this->streetLamps.push_back(streetLamp);
-
-	streetLampPosition = glm::vec4(22.838f, 0.56f, 5.31f, 1.0f);
-	streetLamp = this->createStreetLamp(streetLampPosition, -PI_F / 2.0f);
-	this->lights.push_back(streetLamp);
-	this->streetLamps.push_back(streetLamp);
-
-	streetLampPosition = glm::vec4(6.836f, 0.56f, 10.48f, 1.0f);
-	streetLamp = this->createStreetLamp(streetLampPosition, -PI_F / 2.0f);
-	this->lights.push_back(streetLamp);
-	this->streetLamps.push_back(streetLamp);
+	//streetLampPosition = glm::vec4(3.842f, 0.56f, 8.157f, 1.0f);
+	//streetLamp = this->createStreetLamp(streetLampPosition, -PI_F/2.0f);
+	//this->lights.push_back(streetLamp);
+	//this->streetLamps.push_back(streetLamp);
+	//
+	//streetLampPosition = glm::vec4(1.164f, 0.56f, 19.1359f, 1.0f);
+	//streetLamp = this->createStreetLamp(streetLampPosition, PI_F/2.0f);
+	//this->lights.push_back(streetLamp);
+	//this->streetLamps.push_back(streetLamp);
+	//
+	//streetLampPosition = glm::vec4(11.686f, 0.56f, 22.84f, 1.0f);
+	//streetLamp = this->createStreetLamp(streetLampPosition, PI_F);
+	//this->lights.push_back(streetLamp);
+	//this->streetLamps.push_back(streetLamp);
+	//
+	//streetLampPosition = glm::vec4(18.836f, 0.56f, 12.93f, 1.0f);
+	//streetLamp = this->createStreetLamp(streetLampPosition, -PI_F/2.0f);
+	//this->lights.push_back(streetLamp);
+	//this->streetLamps.push_back(streetLamp);
+	//
+	//streetLampPosition = glm::vec4(7.0f, 0.56f, 22.84f, 1.0f);
+	//streetLamp = this->createStreetLamp(streetLampPosition, PI_F);
+	//this->lights.push_back(streetLamp);
+	//this->streetLamps.push_back(streetLamp);
+	//
+	//streetLampPosition = glm::vec4(20.766f, 0.56f, 22.84f, 1.0f);
+	//streetLamp = this->createStreetLamp(streetLampPosition, PI_F);
+	//this->lights.push_back(streetLamp);
+	//this->streetLamps.push_back(streetLamp);
+	//
+	//streetLampPosition = glm::vec4(16.1714f, 0.56f, 21.47f, 1.0f);
+	//streetLamp = this->createStreetLamp(streetLampPosition, PI_F / 2);
+	//this->lights.push_back(streetLamp);
+	//this->streetLamps.push_back(streetLamp);
+	//
+	//streetLampPosition = glm::vec4(19.405f, 0.56f, 1.8406f, 1.0f);
+	//streetLamp = this->createStreetLamp(streetLampPosition, PI_F);
+	//this->lights.push_back(streetLamp);
+	//this->streetLamps.push_back(streetLamp);
+	//
+	//streetLampPosition = glm::vec4(11.415f, 0.56f, 13.836f, 1.0f);
+	//streetLamp = this->createStreetLamp(streetLampPosition, PI_F);
+	//this->lights.push_back(streetLamp);
+	//this->streetLamps.push_back(streetLamp);
+	//
+	//streetLampPosition = glm::vec4(16.164f, 0.56f, 7.348f, 1.0f);
+	//streetLamp = this->createStreetLamp(streetLampPosition, PI_F / 2.0f);
+	//this->lights.push_back(streetLamp);
+	//this->streetLamps.push_back(streetLamp);
+	//
+	//streetLampPosition = glm::vec4(6.836f, 0.56f, 16.53f, 1.0f);
+	//streetLamp = this->createStreetLamp(streetLampPosition, -PI_F / 2.0f);
+	//this->lights.push_back(streetLamp);
+	//this->streetLamps.push_back(streetLamp);
+	//
+	//streetLampPosition = glm::vec4(22.838f, 0.56f, 18.31f, 1.0f);
+	//streetLamp = this->createStreetLamp(streetLampPosition, -PI_F / 2.0f);
+	//this->lights.push_back(streetLamp);
+	//this->streetLamps.push_back(streetLamp);
+	//
+	//streetLampPosition = glm::vec4(22.838f, 0.56f, 5.31f, 1.0f);
+	//streetLamp = this->createStreetLamp(streetLampPosition, -PI_F / 2.0f);
+	//this->lights.push_back(streetLamp);
+	//this->streetLamps.push_back(streetLamp);
+	//
+	//streetLampPosition = glm::vec4(6.836f, 0.56f, 10.48f, 1.0f);
+	//streetLamp = this->createStreetLamp(streetLampPosition, -PI_F / 2.0f);
+	//this->lights.push_back(streetLamp);
+	//this->streetLamps.push_back(streetLamp);
 }
 
 // Create a street lamp given a position and a rotation.
@@ -576,34 +582,6 @@ void Game::createEntities()
 	//chaoEntity->getTransform().setWorldPosition(glm::vec4(2.0f, 0.2f, 2.0f, 1.0f));
 	//chaoEntity->getTransform().setWorldScale(glm::vec3(0.1f, 0.1f, 0.1f));
 	//this->entities.push_back(chaoEntity);
-}
-
-// Returns a new position based on an original position and a movement direction.
-// If there are no collisions, the new position will just be the original position + movementSpeed * direction
-// If there is a collision, instead of just returning the original position (no movement), try to return
-// the best position based on the map. (Try to slide when colliding with walls).
-// Method will only work for map where walls are parallel to X and Z axes.
-glm::vec4 Game::getNewPositionForMovement(const glm::vec4& position, const glm::vec4& direction,
-	float deltaTime, float movementSpeed) const
-{
-	glm::vec4 newPos = position + movementSpeed * deltaTime * direction;
-	newPos.y = position.y;
-
-	glm::vec4 auxiliarVector;
-
-	auxiliarVector = position;
-	auxiliarVector.x = newPos.x;
-	TerrainType terrainType = this->map->getTerrainTypeForMovement(auxiliarVector);
-	if (terrainType != TerrainType::FREE)
-		newPos.x = position.x;
-
-	auxiliarVector = position;
-	auxiliarVector.z = newPos.z;
-	terrainType = this->map->getTerrainTypeForMovement(auxiliarVector);
-	if (terrainType != TerrainType::FREE)
-		newPos.z = position.z;
-
-	return newPos;
 }
 
 // Get game's selected camera
@@ -712,6 +690,12 @@ void Game::processInput(bool* keyState, float deltaTime)
 		keyState[GLFW_KEY_1] = false;					// Force false to only compute one time.
 	}
 
+	if (keyState[GLFW_KEY_SPACE])
+	{
+		this->player->jump();
+		keyState[GLFW_KEY_SPACE] = false;				// Force false to only compute one time.
+	}
+
 	//if (keyState[GLFW_KEY_X] && !keyState[GLFW_KEY_Q])
 	//	x += 0.01f;
 	//if (keyState[GLFW_KEY_X] && keyState[GLFW_KEY_Q])
@@ -726,12 +710,12 @@ void Game::processInput(bool* keyState, float deltaTime)
 	//	z -= 0.01f;
 }
 
-// This function will check which keys are pressed and which camera is selected and will move cameras and players.
+// This function will check which keys are pressed and which camera is selected and will
+// move cameras and players.
 void Game::movePlayerAndCamerasBasedOnInput(bool* keyState, float deltaTime)
 {
-	static const float freeCameraSpeed = 5.0f;
-	static const float playerSpeed = 3.5f;
-
+	// Camera Velocity
+	const static float freeCameraVelocityLength = 5.0f;
 	glm::vec4 lookDirection;
 	glm::vec4 perpendicularDirection;
 
@@ -761,21 +745,16 @@ void Game::movePlayerAndCamerasBasedOnInput(bool* keyState, float deltaTime)
 	if (keyState[GLFW_KEY_D])
 		movementDirection += glm::normalize(perpendicularDirection);
 
-	if (movementDirection != glm::vec4(0.0f, 0.0f, 0.0f, 0.0f))
+	if (this->selectedCamera == CameraType::FREE)
 	{
-		glm::vec4 playerPos = this->player->getTransform().getWorldPosition();
-		movementDirection = glm::normalize(movementDirection);
-
-		if (this->selectedCamera == CameraType::FREE)
+		if (movementDirection != glm::vec4(0.0f))
 		{
-			freeCamera->setPosition(freeCamera->getPosition() + deltaTime * freeCameraSpeed * movementDirection);
+			movementDirection = glm::normalize(movementDirection);
+			this->freeCameraVelocity = freeCameraVelocityLength * glm::normalize(movementDirection);
 		}
 		else
-		{
-			glm::vec4 playerNewPos = this->getNewPositionForMovement(playerPos, movementDirection,
-				deltaTime, playerSpeed);
-
-			this->player->getTransform().setWorldPosition(playerNewPos);
-		}
+			this->freeCameraVelocity = glm::vec4(0.0f);
 	}
+	else
+		this->player->updateVelocityAndAccelerationBasedOnDirection(movementDirection);
 }

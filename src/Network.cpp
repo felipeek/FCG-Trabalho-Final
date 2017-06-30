@@ -36,12 +36,19 @@ void Network::sendPlayerInformation(const Player& player)
 	const unsigned int packetId = PLAYER_INFORMATION;
 	glm::vec4 playerPosition = player.getTransform().getWorldPosition();
 	glm::vec4 playerLookDirection = player.getLookDirection();
+	glm::vec4 playerVelocity = player.getVelocity();
+	glm::vec4 playerAcceleration = player.getAcceleration();
 
-	const unsigned int bufferSize = sizeof(packetId) + sizeof(playerPosition) + sizeof(playerLookDirection);
+	const unsigned int bufferSize = sizeof(packetId) + sizeof(playerPosition) + sizeof(playerLookDirection) +
+		sizeof(playerVelocity) + sizeof(playerAcceleration);
 	char buffer[bufferSize];
 	memcpy(buffer, &packetId, sizeof(packetId));
 	memcpy(buffer + sizeof(packetId), &playerPosition, sizeof(playerPosition));
 	memcpy(buffer + sizeof(packetId) + sizeof(playerPosition), &playerLookDirection, sizeof(playerLookDirection));
+	memcpy(buffer + sizeof(packetId) + sizeof(playerPosition) + sizeof(playerLookDirection),
+		&playerVelocity, sizeof(playerVelocity));
+	memcpy(buffer + sizeof(packetId) + sizeof(playerPosition) + sizeof(playerLookDirection)
+		+ sizeof(playerVelocity), &playerAcceleration, sizeof(playerAcceleration));
 	this->udpSender->sendMessage(buffer, bufferSize);
 }
 
@@ -95,6 +102,9 @@ void Network::processPlayerInformationPacket(char* buffer)
 {
 	glm::vec4 playerPosition = *(glm::vec4*)(buffer);
 	glm::vec4 playerLookDirection = *(glm::vec4*)(buffer + sizeof(playerPosition));
+	glm::vec4 playerVelocity = *(glm::vec4*)(buffer + sizeof(playerPosition) + sizeof(playerLookDirection));
+	glm::vec4 playerAcceleration = *(glm::vec4*)(buffer + sizeof(playerPosition) + sizeof(playerLookDirection)
+		+ sizeof(playerVelocity));
 
 #if defined (DEBUG) && defined (SHOW_PERIODIC_PACKETS)
 	std::cout << "Packet Received:" << std::endl;
@@ -103,6 +113,10 @@ void Network::processPlayerInformationPacket(char* buffer)
 		playerPosition.z << ", " << playerPosition.w << ">" << std::endl;
 	std::cout << "Player Look Direction: " << "<" << playerLookDirection.x << ", " << playerLookDirection.y << ", " <<
 		playerLookDirection.z << ", " << playerLookDirection.w << ">" << std::endl;
+	std::cout << "Player Velocity: " << "<" << playerVelocity.x << ", " << playerVelocity.y << ", " <<
+		playerVelocity.z << ", " << playerVelocity.w << ">" << std::endl;
+	std::cout << "Player Acceleration: " << "<" << playerAcceleration.x << ", " << playerAcceleration.y << ", " <<
+		playerAcceleration.z << ", " << playerAcceleration.w << ">" << std::endl;
 #endif
 
 	// Process Packet
@@ -110,8 +124,7 @@ void Network::processPlayerInformationPacket(char* buffer)
 
 	if (secondPlayer)
 	{
-		secondPlayer->startMovementInterpolation(playerPosition);
-		//secondPlayer->getTransform().setWorldPosition(playerPosition);
+		secondPlayer->pushMovementInterpolation(playerPosition, playerVelocity, playerAcceleration);
 		secondPlayer->changeLookDirection(playerLookDirection);
 	}
 }

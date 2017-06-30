@@ -46,13 +46,11 @@ namespace raw
 		void createEntities();
 
 		// Auxiliar Functions
-		glm::vec4 getNewPositionForMovement(const glm::vec4& position, const glm::vec4& direction, float deltaTime,
-			float movementSpeed) const;
 		Camera* getSelectedCamera();
 		const Camera* getSelectedCamera() const;
 		StreetLamp* createStreetLamp(const glm::vec4& position, float rotY);
 		void movePlayerAndCamerasBasedOnInput(bool* keyState, float deltaTime);
-		void updateCameras();
+		void updateCameras(float deltaTime);
 
 		// Network
 		Network* network;
@@ -72,6 +70,7 @@ namespace raw
 		OrthographicCamera* orthoFreeCamera;
 		Camera* lookAtCamera;
 		CameraType selectedCamera;
+		glm::vec4 freeCameraVelocity;
 
 		// Players
 		Player* player;

@@ -1,5 +1,14 @@
 #version 330 core
 
+struct Material
+{
+	sampler2D diffuseMap;
+	sampler2D specularMap;
+	sampler2D normalMap;
+	bool useNormalMap;
+	float shineness;
+};
+
 struct FogDescriptor
 {
 	float density;
@@ -23,6 +32,7 @@ uniform mat4 modelMatrix;
 uniform mat4 viewMatrix;
 uniform mat4 projectionMatrix;
 uniform vec4 cameraPosition;
+uniform Material material;
 uniform FogDescriptor fogDescriptor;
 
 float getFogVisibility(vec4 positionWorld);
@@ -35,10 +45,13 @@ void main()
 	fragmentPosition = modelMatrix * vertexPosition;
 	gl_Position = projectionMatrix * viewMatrix * modelMatrix * vertexPosition;
 
-	vec4 T = modelMatrix * vertexTangent;
-	vec4 N = modelMatrix * vertexNormal;
-	vec4 B = vec4(cross(T.xyz, N.xyz), 0.0);
-	tangentMatrix = mat4(T, B, N, vec4(0,0,0,0));
+	if (material.useNormalMap)
+	{
+		vec4 T = modelMatrix * vertexTangent;
+		vec4 N = modelMatrix * vertexNormal;
+		vec4 B = vec4(cross(T.xyz, N.xyz), 0.0);
+		tangentMatrix = mat4(T, B, N, vec4(0,0,0,0));
+	}
 	
 	if (fogDescriptor.on)
 		fragmentVisibility = getFogVisibility(fragmentPosition);
