@@ -67,6 +67,7 @@ void Game::init(bool singlePlayer)
 	this->useNormalMap = true;
 	this->useOrthoCamera = false;
 	this->useFog = true;
+	this->useCullFace = false;
 }
 
 void Game::render() const
@@ -77,30 +78,30 @@ void Game::render() const
 	// Get selected shader
 	switch (this->shaderType)
 	{
-		case ShaderType::FIXED:
-			shaderToUse = this->fixedShader;
-			break;
-		case ShaderType::BASIC:
-			shaderToUse = this->basicShader;
-			break;
-		case ShaderType::TEXTURE:
-			shaderToUse = this->textureShader;
-			break;
-		case ShaderType::FLAT:
-			shaderToUse = this->flatShader;
-			break;
-		case ShaderType::GOURAD:
-			shaderToUse = this->gouradShader;
-			break;
-		case ShaderType::PHONG:
-			shaderToUse = this->phongShader;
-			break;
-		case ShaderType::SKYBOX:
-			shaderToUse = this->skyboxShader;
-			break;
-		default:
-			shaderToUse = this->phongShader;
-			break;
+	case ShaderType::FIXED:
+		shaderToUse = this->fixedShader;
+		break;
+	case ShaderType::BASIC:
+		shaderToUse = this->basicShader;
+		break;
+	case ShaderType::TEXTURE:
+		shaderToUse = this->textureShader;
+		break;
+	case ShaderType::FLAT:
+		shaderToUse = this->flatShader;
+		break;
+	case ShaderType::GOURAD:
+		shaderToUse = this->gouradShader;
+		break;
+	case ShaderType::PHONG:
+		shaderToUse = this->phongShader;
+		break;
+	case ShaderType::SKYBOX:
+		shaderToUse = this->skyboxShader;
+		break;
+	default:
+		shaderToUse = this->phongShader;
+		break;
 	}
 
 	// Render skybox
@@ -109,6 +110,13 @@ void Game::render() const
 	// Render all entities
 	for (unsigned int i = 0; i < this->entities.size(); ++i)
 		this->entities[i]->render(*shaderToUse, *selectedCamera, this->lights, this->useNormalMap);
+
+	// Enable Cullface if activated
+	if (this->useCullFace)
+	{
+		glEnable(GL_CULL_FACE);
+		glFrontFace(GL_CCW);
+	}
 
 	// Render all street lamps
 	for (unsigned int i = 0; i < this->streetLamps.size(); ++i)
@@ -124,16 +132,23 @@ void Game::render() const
 		this->player->renderGun(*shaderToUse, *selectedCamera, this->lights, this->useNormalMap);
 	}
 
-	// Render first player shotmarks
-	this->player->renderShotMarks(*basicShader, *selectedCamera);
-
 	// Render second player only if game is being played multiplayer
 	if (!this->singlePlayer)
 	{
 		this->secondPlayer->render(*shaderToUse, *selectedCamera, this->lights, this->useNormalMap);
 		this->secondPlayer->renderGun(*shaderToUse, *selectedCamera, this->lights, this->useNormalMap);
-		this->secondPlayer->renderShotMarks(*basicShader, *selectedCamera);
 	}
+
+	// Disable cullface if activated
+	if (this->useCullFace)
+		glDisable(GL_CULL_FACE);
+
+	// Render first player shotmarks
+	this->player->renderShotMarks(*basicShader, *selectedCamera);
+
+	// Render second player shotmarks
+	if (!this->singlePlayer)
+		this->secondPlayer->renderShotMarks(*basicShader, *selectedCamera);
 
 	// Render aim only if player Camera is being used
 	if (this->selectedCamera == CameraType::PLAYER)
@@ -707,6 +722,13 @@ void Game::processInput(bool* keyState, float deltaTime)
 		this->player->setSlowMovement(true);
 	else
 		this->player->setSlowMovement(false);
+
+	// Toggle Cull face
+	if (keyState[GLFW_KEY_M])
+	{
+		this->useCullFace = !this->useCullFace;
+		keyState[GLFW_KEY_M] = false;				// Force false to only compute one time.
+	}
 
 	// Toggle render shot marks
 	if (keyState[GLFW_KEY_R])

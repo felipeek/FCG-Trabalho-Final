@@ -99,5 +99,6 @@ namespace raw
 		bool useNormalMap;
 		bool useOrthoCamera;
 		bool useFog;
+		bool useCullFace;
 	};
 }

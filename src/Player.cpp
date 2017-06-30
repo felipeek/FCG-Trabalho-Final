@@ -237,8 +237,8 @@ void Player::createShootLight()
 
 	LightAttenuation shootLightAttenuation = {
 		1.0f,		// Constant Term
-		0.35f,		// Linear Term
-		0.44f		// Quadratic Term
+		0.7f,		// Linear Term
+		1.8f		// Quadratic Term
 	};
 
 	this->shootLight = new PointLight(glm::vec4(0.0f, 0.0f, 0.0f, 1.0f), ambientLight, diffuseLight, specularLight);
