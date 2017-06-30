@@ -103,7 +103,7 @@ namespace raw
 		Entity* firstPersonGunFiring;	// 2D Gun Firing (Fixed in screen)
 		Entity* damageAnimationEntity;	// 2D damageAnimation
 		PointLight* shootLight;
-
+		
 		// Movement Constants
 		const static float playerMovementAccelerationLength;
 		const static float maxVelocityLength;

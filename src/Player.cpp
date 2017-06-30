@@ -365,7 +365,10 @@ void Player::update(Map* map, float deltaTime)
 	this->gun->getTransform().setWorldRotation(glm::vec3(0.0f, -modelRotation, 0.0f));
 
 	// Refresh shoot light
-	this->shootLight->setPosition(this->camera->getPosition());
+	// Calculate shoot light position, should be the same position as the gun
+	glm::vec4 shootLightPosition = this->gun->getTransform().getModelMatrix() *
+		this->gun->getTransform().getPreTransform()->getModelMatrix() * glm::vec4(0.0f, 0.0f, 0.0f, 1.0f);
+	this->shootLight->setPosition(shootLightPosition);
 
 	// Refresh fire animation
 	if (this->isShootingAnimationOn)
