@@ -7,7 +7,7 @@ using namespace raw;
 #define BUFLEN 2048	// Max length of buffer
 //#define DEBUG
 
-UDPSender::UDPSender(char* destinationIp, unsigned int destinationPort)
+UDPSender::UDPSender(const char* destinationIp, unsigned int destinationPort)
 {
 	WSADATA wsa;
 

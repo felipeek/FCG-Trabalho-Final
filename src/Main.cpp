@@ -2,7 +2,9 @@
 #include <GLFW\glfw3.h>
 #include <iostream>
 #include <Windows.h>
+#include <time.h>
 #include "Game.h"
+#include "Application.h"
 
 #define WINDOW_TITLE "Result.exe"
 
@@ -11,13 +13,10 @@ int windowHeight = 768;
 
 static bool keyState[1024];	// @TODO: Check range.
 static float deltaTime;
-static raw::Game* game;
+static raw::Application* application;
 
 void glfwKeyCallback(GLFWwindow* window, int key, int scanCode, int action, int mods)
 {
-	if (key == GLFW_KEY_ESCAPE && action == GLFW_PRESS)
-		glfwSetWindowShouldClose(window, GLFW_TRUE);
-
 	if (action == GLFW_PRESS)
 		keyState[key] = true;
 	if (action == GLFW_RELEASE)
@@ -26,20 +25,17 @@ void glfwKeyCallback(GLFWwindow* window, int key, int scanCode, int action, int 
 
 void glfwCursorCallback(GLFWwindow* window, double xPos, double yPos)
 {
-	if (game)
-		game->processMouseChange(xPos, yPos);
+	application->processMouseChange(xPos, yPos);
 }
 
 void glfwMouseButtonCallback(GLFWwindow* window, int button, int action, int mods)
 {
-	if (game)
-		game->processMouseClick(button, action);	
+	application->processMouseClick(button, action);	
 }
 
 void glfwScrollCallback(GLFWwindow* window, double xOffset, double yOffset)
 {
-	if (game)
-		game->processScrollChange(xOffset, yOffset);
+	application->processScrollChange(xOffset, yOffset);
 }
 
 void glfwResizeCallback(GLFWwindow* window, int width, int height)
@@ -47,7 +43,7 @@ void glfwResizeCallback(GLFWwindow* window, int width, int height)
 	windowWidth = width;
 	windowHeight = height;
 	glViewport(0, 0, width, height);
-	game->processWindowResize(width, height);
+	application->processWindowResize(width, height);
 }
 
 GLFWwindow* initGlfw()
@@ -81,13 +77,12 @@ void refreshKeys()
 
 int main()
 {
+	srand(time(NULL));	// init random seed
+
 	GLFWwindow* mainWindow = initGlfw();
 	initGlew();
-
-	game = new raw::Game();
-
-	game->init(false);
-	game->processWindowResize(windowWidth, windowHeight);	// Force game to process window size
+	application = new raw::Application(windowWidth, windowHeight);
+	application->processWindowResize(windowWidth, windowHeight);	// Force application to process window size
 
 	glEnable(GL_DEPTH_TEST);
 	glLineWidth(10);
@@ -102,14 +97,17 @@ int main()
 		//glClearColor(0x7E/255.0f, 0xC0/255.0f, 0xEE/255.0f, 1.0f);
 		glClearColor(0.4f, 0.4f, 0.4f, 1.0f);
 
-		game->update(deltaTime);
-		game->render();
-		game->processInput(keyState, deltaTime);
+		application->update(deltaTime);
+		application->render();
+		application->processInput(keyState, deltaTime);
+	
+		if (application->shouldExit())
+			glfwSetWindowShouldClose(mainWindow, GLFW_TRUE);
 
 		refreshKeys();
 		glfwPollEvents();
 		glfwSwapBuffers(mainWindow);
-
+	
 		double currentFrame = glfwGetTime();
 		if ((int)currentFrame > frameNumber)
 		{
@@ -119,12 +117,12 @@ int main()
 		}
 		else
 			++fps;
-
+	
 		deltaTime = (float)(currentFrame - lastFrame);
-
+	
 		lastFrame = currentFrame;
 	}
 
-	game->destroy();
+	delete application;
 	glfwTerminate();
 }

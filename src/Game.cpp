@@ -9,25 +9,27 @@
 #include "Skybox.h"
 
 #include <GLFW\glfw3.h>
+#include <Windows.h>
 
 using namespace raw;
 
 Game::Game()
-{	
+{
+	this->bExit = false;
 }
 
 Game::~Game()
 {
 }
 
-void Game::init(bool singlePlayer)
+void Game::init(const GameSettings& gameSettings)
 {
-	this->singlePlayer = singlePlayer;
+	this->bExit = false;
+	this->singlePlayer = gameSettings.singlePlayer;
 
 	// Init Network
 	if (!this->singlePlayer)
-		this->network = new Network(this, "177.134.42.232", 8888);
-		//this->network = new Network(this, "127.0.0.1", 8888);
+		this->network = new Network(this, gameSettings.ip, gameSettings.port);
 
 	// Create sky
 	this->skybox = new Skybox();
@@ -68,6 +70,18 @@ void Game::init(bool singlePlayer)
 	this->useOrthoCamera = false;
 	this->useFog = true;
 	this->useCullFace = false;
+
+	if (!this->singlePlayer)
+	{
+		this->network->handshake();
+		char id[2];
+		if (this->network->getClientLevel() == ClientLevel::CLIENT0)
+			id[0] = '0';
+		else
+			id[0] = '1';
+		id[1] = 0;
+		MessageBox(0, id, "Client ID", MB_OK);
+	}
 }
 
 void Game::render() const
@@ -484,75 +498,75 @@ void Game::createLights()
 	this->lights.push_back(streetLamp);
 	this->streetLamps.push_back(streetLamp);
 
-	//streetLampPosition = glm::vec4(3.842f, 0.56f, 8.157f, 1.0f);
-	//streetLamp = this->createStreetLamp(streetLampPosition, -PI_F/2.0f);
-	//this->lights.push_back(streetLamp);
-	//this->streetLamps.push_back(streetLamp);
-	//
-	//streetLampPosition = glm::vec4(1.164f, 0.56f, 19.1359f, 1.0f);
-	//streetLamp = this->createStreetLamp(streetLampPosition, PI_F/2.0f);
-	//this->lights.push_back(streetLamp);
-	//this->streetLamps.push_back(streetLamp);
-	//
-	//streetLampPosition = glm::vec4(11.686f, 0.56f, 22.84f, 1.0f);
-	//streetLamp = this->createStreetLamp(streetLampPosition, PI_F);
-	//this->lights.push_back(streetLamp);
-	//this->streetLamps.push_back(streetLamp);
-	//
-	//streetLampPosition = glm::vec4(18.836f, 0.56f, 12.93f, 1.0f);
-	//streetLamp = this->createStreetLamp(streetLampPosition, -PI_F/2.0f);
-	//this->lights.push_back(streetLamp);
-	//this->streetLamps.push_back(streetLamp);
-	//
-	//streetLampPosition = glm::vec4(7.0f, 0.56f, 22.84f, 1.0f);
-	//streetLamp = this->createStreetLamp(streetLampPosition, PI_F);
-	//this->lights.push_back(streetLamp);
-	//this->streetLamps.push_back(streetLamp);
-	//
-	//streetLampPosition = glm::vec4(20.766f, 0.56f, 22.84f, 1.0f);
-	//streetLamp = this->createStreetLamp(streetLampPosition, PI_F);
-	//this->lights.push_back(streetLamp);
-	//this->streetLamps.push_back(streetLamp);
-	//
-	//streetLampPosition = glm::vec4(16.1714f, 0.56f, 21.47f, 1.0f);
-	//streetLamp = this->createStreetLamp(streetLampPosition, PI_F / 2);
-	//this->lights.push_back(streetLamp);
-	//this->streetLamps.push_back(streetLamp);
-	//
-	//streetLampPosition = glm::vec4(19.405f, 0.56f, 1.8406f, 1.0f);
-	//streetLamp = this->createStreetLamp(streetLampPosition, PI_F);
-	//this->lights.push_back(streetLamp);
-	//this->streetLamps.push_back(streetLamp);
-	//
-	//streetLampPosition = glm::vec4(11.415f, 0.56f, 13.836f, 1.0f);
-	//streetLamp = this->createStreetLamp(streetLampPosition, PI_F);
-	//this->lights.push_back(streetLamp);
-	//this->streetLamps.push_back(streetLamp);
-	//
-	//streetLampPosition = glm::vec4(16.164f, 0.56f, 7.348f, 1.0f);
-	//streetLamp = this->createStreetLamp(streetLampPosition, PI_F / 2.0f);
-	//this->lights.push_back(streetLamp);
-	//this->streetLamps.push_back(streetLamp);
-	//
-	//streetLampPosition = glm::vec4(6.836f, 0.56f, 16.53f, 1.0f);
-	//streetLamp = this->createStreetLamp(streetLampPosition, -PI_F / 2.0f);
-	//this->lights.push_back(streetLamp);
-	//this->streetLamps.push_back(streetLamp);
-	//
-	//streetLampPosition = glm::vec4(22.838f, 0.56f, 18.31f, 1.0f);
-	//streetLamp = this->createStreetLamp(streetLampPosition, -PI_F / 2.0f);
-	//this->lights.push_back(streetLamp);
-	//this->streetLamps.push_back(streetLamp);
-	//
-	//streetLampPosition = glm::vec4(22.838f, 0.56f, 5.31f, 1.0f);
-	//streetLamp = this->createStreetLamp(streetLampPosition, -PI_F / 2.0f);
-	//this->lights.push_back(streetLamp);
-	//this->streetLamps.push_back(streetLamp);
-	//
-	//streetLampPosition = glm::vec4(6.836f, 0.56f, 10.48f, 1.0f);
-	//streetLamp = this->createStreetLamp(streetLampPosition, -PI_F / 2.0f);
-	//this->lights.push_back(streetLamp);
-	//this->streetLamps.push_back(streetLamp);
+	streetLampPosition = glm::vec4(3.842f, 0.56f, 8.157f, 1.0f);
+	streetLamp = this->createStreetLamp(streetLampPosition, -PI_F/2.0f);
+	this->lights.push_back(streetLamp);
+	this->streetLamps.push_back(streetLamp);
+	
+	streetLampPosition = glm::vec4(1.164f, 0.56f, 19.1359f, 1.0f);
+	streetLamp = this->createStreetLamp(streetLampPosition, PI_F/2.0f);
+	this->lights.push_back(streetLamp);
+	this->streetLamps.push_back(streetLamp);
+	
+	streetLampPosition = glm::vec4(11.686f, 0.56f, 22.84f, 1.0f);
+	streetLamp = this->createStreetLamp(streetLampPosition, PI_F);
+	this->lights.push_back(streetLamp);
+	this->streetLamps.push_back(streetLamp);
+	
+	streetLampPosition = glm::vec4(18.836f, 0.56f, 12.93f, 1.0f);
+	streetLamp = this->createStreetLamp(streetLampPosition, -PI_F/2.0f);
+	this->lights.push_back(streetLamp);
+	this->streetLamps.push_back(streetLamp);
+	
+	streetLampPosition = glm::vec4(7.0f, 0.56f, 22.84f, 1.0f);
+	streetLamp = this->createStreetLamp(streetLampPosition, PI_F);
+	this->lights.push_back(streetLamp);
+	this->streetLamps.push_back(streetLamp);
+	
+	streetLampPosition = glm::vec4(20.766f, 0.56f, 22.84f, 1.0f);
+	streetLamp = this->createStreetLamp(streetLampPosition, PI_F);
+	this->lights.push_back(streetLamp);
+	this->streetLamps.push_back(streetLamp);
+	
+	streetLampPosition = glm::vec4(16.1714f, 0.56f, 21.47f, 1.0f);
+	streetLamp = this->createStreetLamp(streetLampPosition, PI_F / 2);
+	this->lights.push_back(streetLamp);
+	this->streetLamps.push_back(streetLamp);
+	
+	streetLampPosition = glm::vec4(19.405f, 0.56f, 1.8406f, 1.0f);
+	streetLamp = this->createStreetLamp(streetLampPosition, PI_F);
+	this->lights.push_back(streetLamp);
+	this->streetLamps.push_back(streetLamp);
+	
+	streetLampPosition = glm::vec4(11.415f, 0.56f, 13.836f, 1.0f);
+	streetLamp = this->createStreetLamp(streetLampPosition, PI_F);
+	this->lights.push_back(streetLamp);
+	this->streetLamps.push_back(streetLamp);
+	
+	streetLampPosition = glm::vec4(16.164f, 0.56f, 7.348f, 1.0f);
+	streetLamp = this->createStreetLamp(streetLampPosition, PI_F / 2.0f);
+	this->lights.push_back(streetLamp);
+	this->streetLamps.push_back(streetLamp);
+	
+	streetLampPosition = glm::vec4(6.836f, 0.56f, 16.53f, 1.0f);
+	streetLamp = this->createStreetLamp(streetLampPosition, -PI_F / 2.0f);
+	this->lights.push_back(streetLamp);
+	this->streetLamps.push_back(streetLamp);
+	
+	streetLampPosition = glm::vec4(22.838f, 0.56f, 18.31f, 1.0f);
+	streetLamp = this->createStreetLamp(streetLampPosition, -PI_F / 2.0f);
+	this->lights.push_back(streetLamp);
+	this->streetLamps.push_back(streetLamp);
+	
+	streetLampPosition = glm::vec4(22.838f, 0.56f, 5.31f, 1.0f);
+	streetLamp = this->createStreetLamp(streetLampPosition, -PI_F / 2.0f);
+	this->lights.push_back(streetLamp);
+	this->streetLamps.push_back(streetLamp);
+	
+	streetLampPosition = glm::vec4(6.836f, 0.56f, 10.48f, 1.0f);
+	streetLamp = this->createStreetLamp(streetLampPosition, -PI_F / 2.0f);
+	this->lights.push_back(streetLamp);
+	this->streetLamps.push_back(streetLamp);
 }
 
 // Create a street lamp given a position and a rotation.
@@ -587,7 +601,11 @@ void Game::createEntities()
 	// Set diffuse maps in a loop based on the mesh order.
 	for (int i = 1; i < 19; i++)
 		if (i % 2)
-			woodBilletModel->getMeshes()[i]->setDiffuseMap(Texture::load(".\\res\\art\\woodbillet\\BarkDecidious0194_1_S.jpg"));
+		{
+			woodBilletModel->getMeshes()[i]->setDiffuseMap(Texture::load(".\\res\\art\\w_diffuse.jpg"));
+			woodBilletModel->getMeshes()[i]->setNormalMap(Texture::load(".\\res\\art\\w_normal.jpg"));
+		//a	woodBilletModel->getMeshes()[i]->setDiffuseMap(Texture::load(".\\res\\art\\woodbillet\\BarkDecidious0194_1_S.jpg"));
+		}
 		else
 			woodBilletModel->getMeshes()[i]->setDiffuseMap(Texture::load(".\\res\\art\\woodbillet\\wood2.png"));
 	this->models.push_back(woodBilletModel);
@@ -734,8 +752,30 @@ void Game::processInput(bool* keyState, float deltaTime)
 	if (keyState[GLFW_KEY_R])
 	{
 		this->player->setRenderShotMarks(!this->player->isRenderingShotMarks());
-		this->secondPlayer->setRenderShotMarks(!this->secondPlayer->isRenderingShotMarks());
+		if (!this->singlePlayer)
+			this->secondPlayer->setRenderShotMarks(!this->secondPlayer->isRenderingShotMarks());
 		keyState[GLFW_KEY_R] = false;				// Force false to only compute one time.
+	}
+
+	// Turn on/off some lights to improve FPS
+	if (keyState[GLFW_KEY_L])
+	{
+		for (unsigned int i = 0; i < this->lights.size(); ++i)
+		{
+			Light* light = this->lights[i];
+			
+			if (i % 2)
+				light->setOn(!light->isOn());
+		}
+
+		keyState[GLFW_KEY_L] = false;				// Force false to only compute one time.
+	}
+
+	// Check if game should end
+	if (keyState[GLFW_KEY_ESCAPE])
+	{
+		this->bExit = true;
+		keyState[GLFW_KEY_ESCAPE] = false;				// Force false to only compute one time.
 	}
 
 	//if (keyState[GLFW_KEY_X] && !keyState[GLFW_KEY_Q])
@@ -799,4 +839,9 @@ void Game::movePlayerAndCamerasBasedOnInput(bool* keyState, float deltaTime)
 	}
 	else
 		this->player->updateVelocityAndAccelerationBasedOnDirection(movementDirection);
+}
+
+bool Game::shouldExit() const
+{
+	return this->bExit;
 }

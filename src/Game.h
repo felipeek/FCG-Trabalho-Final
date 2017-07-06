@@ -21,12 +21,20 @@ namespace raw
 		FREE
 	};
 
+	struct GameSettings
+	{
+		bool singlePlayer;
+		char ip[256];
+		int port;
+	};
+
 	class Game
 	{
 	public:
 		Game();
 		~Game();
-		void init(bool singlePlayer);
+		void init(const GameSettings& gameSettings);
+		bool shouldExit() const;
 		void render() const;
 		void update(float deltaTime);
 		void destroy();
@@ -100,5 +108,6 @@ namespace raw
 		bool useOrthoCamera;
 		bool useFog;
 		bool useCullFace;
+		bool bExit;
 	};
 }

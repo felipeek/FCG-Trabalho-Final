@@ -24,9 +24,13 @@ StreetLamp::~StreetLamp()
 void StreetLamp::render(const Shader& shaderForBase, const Shader& shaderForBulb, const Camera& camera,
 	const std::vector<Light*>& lights, bool useNormalMap) const
 {
-	const static glm::vec4 bulbColor = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f);
+	glm::vec4 bulbColor = this->isOn() ? glm::vec4(1.0f, 1.0f, 1.0f, 1.0f) : glm::vec4(0.1f, 0.1f, 0.1f, 0.1f);
 	this->baseEntity->render(shaderForBase, camera, lights, useNormalMap);
+
+	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+	glEnable(GL_BLEND);
 	this->bulbEntity->render(shaderForBulb, camera, bulbColor);
+	glDisable(GL_BLEND);
 }
 
 Entity* StreetLamp::getBaseEntity()

@@ -8,17 +8,28 @@ namespace raw
 {
 	class Game;
 
+	enum class ClientLevel
+	{
+		NONE,
+		CLIENT0,
+		CLIENT1
+	};
+
 	class Network
 	{
 	public:
-		Network(Game* game, char* peerIp, unsigned int peerPort);
+		Network(Game* game, const char* peerIp, unsigned int peerPort);
 		~Network();
+		ClientLevel getClientLevel();
+		void handshake();
 		void sendPlayerInformation(const Player& player);
 		void sendPlayerFireAnimation();
 		void sendPlayerFireAnimation(const glm::vec4& wallShotMarkPosition);
 		void sendPlayerFireHitAndAnimation(int damage);
 		void receiveAndProcessPackets();
 	private:
+		ClientLevel handshakeStart();
+		void handshakeEnd();
 		void processPlayerInformationPacket(char* buffer);
 		void processPlayerFireAnimationPacket(char* buffer);
 		void processPlayerFireAnimationWithWallMarksPacket(char* buffer);
@@ -27,5 +38,6 @@ namespace raw
 		UDPSender* udpSender;
 		UDPReceiver* udpReceiver;
 		Game* boundGame;
+		ClientLevel clientLevel;
 	};
 }

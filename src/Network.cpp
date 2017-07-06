@@ -1,5 +1,8 @@
 #include "Network.h"
 #include "Game.h"
+#include <time.h>
+#include <Windows.h>
+#include <GLFW\glfw3.h>
 
 using namespace raw;
 
@@ -12,13 +15,14 @@ using namespace raw;
 
 enum PacketType
 {
+	HANDSHAKE_START = 0,
 	PLAYER_INFORMATION = 1,
 	PLAYER_FIRE_ANIMATION = 2,
 	PLAYER_FIRE_ANIMATION_WITH_WALL_SHOT_MARK = 3,
 	PLAYER_FIRE_HIT = 4,
 };
 
-Network::Network(Game* game, char* peerIp, unsigned int peerPort)
+Network::Network(Game* game, const char* peerIp, unsigned int peerPort)
 {
 	this->peerPort = peerPort;
 	this->udpReceiver = new UDPReceiver(this->peerPort);
@@ -30,6 +34,61 @@ Network::~Network()
 {
 	delete this->udpReceiver;
 	delete this->udpSender;
+}
+
+// Logic behind this handshaking: each client generates and transmits a random number to each other. When they receive the rand
+// number, they test which number is greater. Depending on this test, they know if they are the client 0 or client 1. If numbers
+// are equal, retransmit.
+void Network::handshake()
+{
+	const unsigned int rxBufferSize = 2048;
+	char rxBuffer[rxBufferSize];
+	const unsigned int packetId = HANDSHAKE_START;
+	unsigned int randNumber = rand() % 1000000;
+
+	// Build handshake packet
+	const unsigned int txBufferSize = sizeof(packetId) + sizeof(randNumber);
+	char txBuffer[txBufferSize];
+	memcpy(txBuffer, &packetId, sizeof(packetId));
+	memcpy(txBuffer + sizeof(packetId), &randNumber, sizeof(randNumber));
+
+	double lastTime = 0;
+	const double sendHandshakeDelay = 1.0;	// Delay to send handshake packet, in seconds
+
+	while (true)
+	{
+		double currentTime = glfwGetTime();
+		// Send handshake packet
+		if (currentTime > lastTime + sendHandshakeDelay)
+			this->udpSender->sendMessage(txBuffer, txBufferSize);
+
+		// Receive handshake packet
+		if (this->udpReceiver->receiveMessage(rxBuffer, rxBufferSize) > 0)
+		{
+			unsigned int packetId = *(unsigned int*)rxBuffer;
+
+			if (packetId == HANDSHAKE_START)
+			{
+				// Get peer's random number.
+				unsigned int peerRandNumber = *(unsigned int*)(rxBuffer + sizeof(packetId));
+
+				if (randNumber < peerRandNumber)
+				{
+					this->udpSender->sendMessage(rxBuffer, rxBufferSize);
+					this->clientLevel = ClientLevel::CLIENT0;
+					return;
+				}
+				else if (randNumber > peerRandNumber)
+				{
+					this->udpSender->sendMessage(rxBuffer, rxBufferSize);
+					this->clientLevel = ClientLevel::CLIENT1;
+					return;
+				}
+				else
+					MessageBox(0, "Handshake error: same random number.", "Error", MB_ICONERROR);
+			}
+		}
+	}
 }
 
 void Network::sendPlayerInformation(const Player& player)
@@ -196,4 +255,9 @@ void Network::processPlayerFireHitPacket(char* buffer)
 	localPlayer->removeHp(damage);
 	localPlayer->startDamageAnimation();
 	secondPlayer->startShootingAnimation();
+}
+
+ClientLevel Network::getClientLevel()
+{
+	return this->clientLevel;
 }
