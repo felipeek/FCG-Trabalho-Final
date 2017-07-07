@@ -4,15 +4,16 @@
 #include "Light.h"
 #include "Player.h"
 #include "Map.h"
+#include "Network.h"
 #include <vector>
 
 namespace raw
 {
 	class StreetLamp;
-	class Network;
 	class Skybox;
 	class OrthographicCamera;
 	class StreetSpotLight;
+	class Scoreboard;
 
 	enum class CameraType
 	{
@@ -28,6 +29,14 @@ namespace raw
 		int port;
 	};
 
+	struct GameExitInfo
+	{
+		bool forcedExit;
+		bool win;
+		float leftScore;
+		float rightScore;
+	};
+
 	class Game
 	{
 	public:
@@ -35,6 +44,7 @@ namespace raw
 		~Game();
 		void init(const GameSettings& gameSettings);
 		bool shouldExit() const;
+		GameExitInfo getExitInfo() const;
 		void render() const;
 		void update(float deltaTime);
 		void destroy();
@@ -45,6 +55,7 @@ namespace raw
 		void processWindowResize(int width, int height);
 		Player* getLocalPlayer();
 		Player* getSecondPlayer();
+		Player* getPlayerByClientLevel(ClientLevel clientLevel);
 	private:
 		// Initialization Function
 		void createMap();
@@ -59,6 +70,7 @@ namespace raw
 		StreetLamp* createStreetLamp(const glm::vec4& position, float rotY);
 		void movePlayerAndCamerasBasedOnInput(bool* keyState, float deltaTime);
 		void updateCameras(float deltaTime);
+		void endGameIfNecessary(float leftScore, float rightScore);
 
 		// Network
 		Network* network;
@@ -103,6 +115,9 @@ namespace raw
 		Entity* spotLightEntity;
 		Model* spotLightModel;
 
+		// Scoreboard
+		Scoreboard* scoreboard;
+
 		// Game settings
 		bool singlePlayer;
 		bool useNormalMap;
@@ -110,5 +125,6 @@ namespace raw
 		bool useFog;
 		bool useCullFace;
 		bool bExit;
+		GameExitInfo exitInfo;
 	};
 }

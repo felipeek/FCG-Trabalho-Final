@@ -31,6 +31,11 @@ const Model* Entity::getModel() const
 	return this->model;
 }
 
+void Entity::setModel(Model* model)
+{
+	this->model = model;
+}
+
 // Get the entity's transform. The transform is used to apply geometric transformations to the entity.
 Transform& Entity::getTransform()
 {

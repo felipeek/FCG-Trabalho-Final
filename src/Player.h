@@ -52,10 +52,12 @@ namespace raw
 		void setHp(int hp);
 		void removeHp(int damage);
 		int damage(PlayerBodyPart bodyPart);
+		int getKillCount() const;
+		void resetKillCount();
 		void setSpawnPosition(glm::vec4 spawnPosition);
 		glm::vec4 getSpawnPosition() const;
 		void setWallShotMarkColor(const glm::vec4& wallShotMarkColor);
-		void createShotMark(glm::vec4 position, glm::vec4 color);
+		void createShotMark(glm::vec4 position);
 		void setRenderShotMarks(bool renderShotMarks);
 		bool isRenderingShotMarks() const;
 		void updateVelocityAndAccelerationBasedOnDirection(glm::vec4 direction);
@@ -102,6 +104,7 @@ namespace raw
 
 		const static int initialHp = 100;
 		int hp;
+		int killCount;
 		glm::vec4 spawnPosition;
 		glm::vec4 movementVelocity;
 		glm::vec4 movementAcceleration;

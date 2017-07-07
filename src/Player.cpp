@@ -27,6 +27,7 @@ Player::Player(Model* model) : Entity(model)
 	glm::vec4 initialPosition = glm::vec4(1.7f, 0.0f, 1.7f, 1.0f);
 	this->getTransform().setWorldPosition(initialPosition);
 	this->spawnPosition = initialPosition;
+	this->killCount = 0;
 
 	// Set initial velocity and acceleration
 	this->movementVelocity = glm::vec4(0.0f, 0.0f, 0.0f, 0.0f);
@@ -157,10 +158,10 @@ Player::~Player()
 	delete this->shotMarkModel;
 
 	// Delete health related
-	delete this->healthIcon;
 	delete this->healthIcon->getModel();
-	delete this->healthBar;
+	delete this->healthIcon;
 	delete this->healthBar->getModel();
+	delete this->healthBar;
 
 	// Destroy Shot Marks
 	for (unsigned int i = 0; i < this->shotMarks.size(); ++i)
@@ -457,6 +458,7 @@ void Player::update(Map* map, float deltaTime)
 		// @TEMPORARY?
 		this->getTransform().setWorldPosition(this->spawnPosition);
 		this->setHp(this->initialHp);
+		++this->killCount;
 	}
 
 	// Update player movement
@@ -651,7 +653,7 @@ void Player::shoot(Player* secondPlayer, const std::vector<MapWallDescriptor>& m
 		else
 		{
 			// Wall is Closer
-			this->createShotMark(mapWallsCollisionDescriptor.worldPosition, this->wallShotMarkColor);
+			this->createShotMark(mapWallsCollisionDescriptor.worldPosition);
 
 			// If a network was received, send just a fire animation to second player
 			if (network)
@@ -671,7 +673,7 @@ void Player::shoot(Player* secondPlayer, const std::vector<MapWallDescriptor>& m
 	// If there was a collision with wall only
 	if (!playerCollisionDescriptor.collision.collide && mapWallsCollisionDescriptor.collide)
 	{
-		this->createShotMark(mapWallsCollisionDescriptor.worldPosition, this->wallShotMarkColor);
+		this->createShotMark(mapWallsCollisionDescriptor.worldPosition);
 
 		// If a network was received, send just a fire animation to second player
 		if (network)
@@ -706,7 +708,7 @@ void Player::shoot(const std::vector<MapWallDescriptor>& mapWallDescriptors)
 
 	// If there was a collision
 	if (mapWallsCollisionDescriptor.collide)
-		this->createShotMark(mapWallsCollisionDescriptor.worldPosition, this->wallShotMarkColor);
+		this->createShotMark(mapWallsCollisionDescriptor.worldPosition);
 }
 
 // Start the shooting animation
@@ -878,13 +880,13 @@ glm::vec4 Player::getAcceleration() const
 	return this->movementAcceleration + this->jumpAcceleration;
 }
 
-void Player::createShotMark(glm::vec4 position, glm::vec4 color)
+void Player::createShotMark(glm::vec4 position)
 {
 	ShotMark shotMark;
 	Entity* shotMarkEntity = new Entity(this->shotMarkModel);
 	shotMarkEntity->getTransform().setWorldPosition(position);
 	shotMark.entity = shotMarkEntity;
-	shotMark.color = color;
+	shotMark.color = this->wallShotMarkColor;
 	this->shotMarks.push_back(shotMark);
 }
 
@@ -926,4 +928,14 @@ void Player::setSpawnPosition(glm::vec4 spawnPosition)
 glm::vec4 Player::getSpawnPosition() const
 {
 	return this->spawnPosition;
+}
+
+int Player::getKillCount() const
+{
+	return this->killCount;
+}
+
+void Player::resetKillCount()
+{
+	this->killCount = 0;
 }

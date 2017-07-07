@@ -239,7 +239,7 @@ void Network::processPlayerFireAnimationWithWallMarksPacket(char* buffer)
 
 	// Process Packet
 	secondPlayer->startShootingAnimation();
-	secondPlayer->createShotMark(wallShotMarkPosition, glm::vec4(1.0f, 165/255.0f, 0.0f, 1.0f));
+	secondPlayer->createShotMark(wallShotMarkPosition);
 }
 
 void Network::processPlayerFireHitPacket(char* buffer)

@@ -34,6 +34,11 @@ std::vector<Mesh*> Model::getMeshes() const
 	return this->meshes;
 }
 
+void Model::setMeshes(const std::vector<Mesh*>& meshes)
+{
+	this->meshes = meshes;
+}
+
 void Model::setDiffuseMapOfAllMeshes(Texture* diffuseMap)
 {
 	for (unsigned int i = 0; i < this->meshes.size(); ++i)

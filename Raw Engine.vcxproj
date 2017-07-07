@@ -147,6 +147,7 @@
     <ClCompile Include="src\Model.cpp" />
     <ClCompile Include="src\Main.cpp" />
     <ClCompile Include="src\PointLight.cpp" />
+    <ClCompile Include="src\Scoreboard.cpp" />
     <ClCompile Include="src\Shader.cpp" />
     <ClCompile Include="src\SkyBox.cpp" />
     <ClCompile Include="src\SpotLight.cpp" />
@@ -172,6 +173,7 @@
     <ClInclude Include="src\Model.h" />
     <ClInclude Include="src\MathIncludes.h" />
     <ClInclude Include="src\PointLight.h" />
+    <ClInclude Include="src\Scoreboard.h" />
     <ClInclude Include="src\Shader.h" />
     <ClInclude Include="src\Skybox.h" />
     <ClInclude Include="src\SpotLight.h" />

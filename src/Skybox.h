@@ -13,11 +13,16 @@ namespace raw
 		Skybox();
 		~Skybox();
 		void render(const Shader& shader, const Camera& camera) const;
-		void setSkyColor(const glm::vec4& skyColor);
 		glm::vec4 getSkyColor() const;
+		bool isNight() const;
+		void setNight(bool night);
 	private:
-		CubeMapTexture* skyboxTexture;
+		CubeMapTexture* skyboxDayTexture;
+		CubeMapTexture* skyboxNightTexture;
 		Entity* cube;
-		glm::vec4 skyColor;
+		Model* cubeModel;
+		glm::vec4 daySkyColor;
+		glm::vec4 nightSkyColor;
+		bool bNight;
 	};
 }

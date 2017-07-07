@@ -27,6 +27,11 @@ Application::Application(int windowWidth, int windowHeight)
 	Model* initialMenuModel = new Model(std::vector<Mesh*>({ initialMenuMesh }));
 	this->initialMenuEntity = new Entity(initialMenuModel);
 
+	// Create game results screen
+	Mesh* gameResultsMesh = new Quad(Texture::load(".\\res\\menu\\win.png"));
+	Model* gameResultsModel = new Model(std::vector<Mesh*>({ gameResultsMesh }));
+	this->gameResultsEntity = new Entity(gameResultsModel);
+
 	// Update window height and width
 	this->windowWidth = windowWidth;
 	this->windowHeight = windowHeight;
@@ -67,6 +72,14 @@ void Application::render()
 	case ApplicationState::GAMERUNNING:
 		this->activeGame->render();
 		break;
+	case ApplicationState::GAMERESULTS:
+		this->menuScene->render();
+		glDisable(GL_DEPTH_TEST);
+		glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+		glEnable(GL_BLEND);
+		this->gameResultsEntity->render(*this->fixedShader, windowRatio);
+		glDisable(GL_BLEND);
+		glEnable(GL_DEPTH_TEST);
 	default:
 		break;
 	}
@@ -84,9 +97,30 @@ void Application::update(float deltaTime)
 			this->activeGame->update(deltaTime);
 		else
 		{
+			GameExitInfo exitInfo = this->activeGame->getExitInfo();
 			this->activeGame->destroy();
-			this->applicationState = ApplicationState::INITIALMENU;
+
+			if (exitInfo.forcedExit)
+				this->applicationState = ApplicationState::INITIALMENU;
+			else
+			{
+				if (exitInfo.win)
+				{
+					Texture* winTex = Texture::load(".\\res\\menu\\win.png");
+					this->gameResultsEntity->getModel()->setDiffuseMapOfAllMeshes(winTex);
+				}
+				else
+				{
+					Texture* winTex = Texture::load(".\\res\\menu\\lose.png");
+					this->gameResultsEntity->getModel()->setDiffuseMapOfAllMeshes(winTex);
+				}
+
+				this->applicationState = ApplicationState::GAMERESULTS;
+			}
 		}
+		break;
+	case ApplicationState::GAMERESULTS:
+		this->menuScene->update(deltaTime);
 		break;
 	default:
 		break;
@@ -158,6 +192,13 @@ void Application::processInput(bool* keyState, float deltaTime)
 	case ApplicationState::GAMERUNNING:
 		this->activeGame->processInput(keyState, deltaTime);
 		break;
+	case ApplicationState::GAMERESULTS:
+		if (keyState[GLFW_KEY_ENTER])
+		{
+			this->applicationState = ApplicationState::INITIALMENU;
+			keyState[GLFW_KEY_ENTER] = false;
+		}
+		break;
 	}
 }
 
@@ -219,7 +260,7 @@ BOOL CALLBACK processConnectionDialogEvent(HWND hWnd, UINT message, WPARAM wPara
 						}
 					}
 
-					MessageBox(hWnd, "Invalid format.", "hello", MB_OK);
+					MessageBox(hWnd, "Invalid Format.", "Error", MB_OK);
 					return FALSE;
 				} break;
 				case CANCEL_BUTTON:

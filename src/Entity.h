@@ -27,6 +27,7 @@ namespace raw
 		const Transform& getTransform() const;
 		Model* getModel();
 		const Model* getModel() const;
+		void setModel(Model* model);
 	private:
 		Transform transform;
 		Model* model;

@@ -7,6 +7,7 @@
 #include "Network.h"
 #include "StreetLamp.h"
 #include "Skybox.h"
+#include "Scoreboard.h"
 
 #include <GLFW\glfw3.h>
 #include <Windows.h>
@@ -48,6 +49,7 @@ void Game::init(const GameSettings& gameSettings)
 	this->models.push_back(playerModel);
 	this->player = new Player(playerModel);
 	this->player->getTransform().setWorldScale(glm::vec3(0.12f, 0.12f, 0.12f));
+	this->player->setWallShotMarkColor(glm::vec4(0.4f, 0.4f, 1.0f, 1.0f));
 	this->lights.push_back(this->player->getShootLight());						// Push Shoot Light
 
 	// Create Second Player
@@ -65,6 +67,9 @@ void Game::init(const GameSettings& gameSettings)
 	// Create Entities
 	this->createEntities();
 
+	// Create scoreboard
+	this->scoreboard = new Scoreboard();
+
 	// Set game settings
 	this->useNormalMap = true;
 	this->useOrthoCamera = false;
@@ -77,22 +82,35 @@ void Game::init(const GameSettings& gameSettings)
 
 		const glm::vec4 client0Position(1.7f, 0.0f, 1.7f, 1.0f);
 		const glm::vec4 client1Position(22.22f, 0.0f, 21.98f, 1.0f);
+		const glm::vec4 client0WallShotMarkColor(0.4f, 0.4f, 1.0f, 1.0f);
+		const glm::vec4 client1WallShotMarkColor(0.4f, 1.0f, 0.4f, 1.0f);
 
-		if (this->network->getClientLevel() == ClientLevel::CLIENT0)
-		{
-			this->player->getTransform().setWorldPosition(client0Position);
-			this->player->setSpawnPosition(client0Position);
-			this->secondPlayer->getTransform().setWorldPosition(glm::vec4(client1Position));
-			this->secondPlayer->setSpawnPosition(client1Position);
-		}
-		else
-		{
-			this->player->getTransform().setWorldPosition(client1Position);
-			this->player->setSpawnPosition(client1Position);
-			this->secondPlayer->getTransform().setWorldPosition(client0Position);
-			this->secondPlayer->setSpawnPosition(client0Position);
-		}
+		Player* client0 = this->getPlayerByClientLevel(ClientLevel::CLIENT0);
+		Player* client1 = this->getPlayerByClientLevel(ClientLevel::CLIENT1);
+
+		client0->getTransform().setWorldPosition(client0Position);
+		client0->setSpawnPosition(client0Position);
+		client0->setWallShotMarkColor(client0WallShotMarkColor);
+		client1->getTransform().setWorldPosition(glm::vec4(client1Position));
+		client1->setWallShotMarkColor(client1WallShotMarkColor);
+		client1->setSpawnPosition(client1Position);
 	}
+}
+
+Player* Game::getPlayerByClientLevel(ClientLevel clientLevel)
+{
+	if (this->singlePlayer)
+	{
+		if (clientLevel == ClientLevel::CLIENT0)
+			return this->player;
+		else
+			return 0;
+	}
+
+	if (this->network->getClientLevel() == clientLevel)
+		return this->player;
+	else
+		return this->secondPlayer;
 }
 
 void Game::render() const
@@ -178,6 +196,8 @@ void Game::render() const
 	// Render aim only if player Camera is being used
 	if (this->selectedCamera == CameraType::PLAYER)
 		this->player->renderScreenImages(*fixedShader, *hpBarShader);
+
+	this->scoreboard->render(*fixedShader, (float)this->freeCamera->getWindowHeight() / (float)this->freeCamera->getWindowWidth());
 }
 
 // Update game
@@ -212,6 +232,18 @@ void Game::update(float deltaTime)
 			lastTime = currentTime;
 		}
 	}
+
+	// Update scoreboard
+	Player* c0Player = this->getPlayerByClientLevel(ClientLevel::CLIENT0);
+	Player* c1Player = this->getPlayerByClientLevel(ClientLevel::CLIENT1);
+	float leftScore = c1Player ? c1Player->getKillCount() : 0.0f;
+	float rightScore = c0Player ? c0Player->getKillCount() : 0.0f;
+	this->scoreboard->changeLeftScore(leftScore);
+	this->scoreboard->changeRightScore(rightScore);
+	this->scoreboard->update(deltaTime);
+
+	// Test if game ended
+	this->endGameIfNecessary(leftScore, rightScore);
 }
 
 void Game::updateCameras(float deltaTime)
@@ -788,15 +820,23 @@ void Game::processInput(bool* keyState, float deltaTime)
 	if (keyState[GLFW_KEY_ESCAPE])
 	{
 		this->bExit = true;
+		this->exitInfo.forcedExit = true;
 		keyState[GLFW_KEY_ESCAPE] = false;				// Force false to only compute one time.
 	}
 
 	// Temporary
-	if (keyState[GLFW_KEY_9])
+	//if (keyState[GLFW_KEY_9])
+	//{
+	//	this->player->damage(PlayerBodyPart::HEAD);
+	//	this->player->startDamageAnimation();
+	//	keyState[GLFW_KEY_9] = false;				// Force false to only compute one time.
+	//}
+
+	// Toggle skybox day/night
+	if (keyState[GLFW_KEY_Z])
 	{
-		this->player->damage(PlayerBodyPart::LEFTFOOT);
-		this->player->startDamageAnimation();
-		keyState[GLFW_KEY_9] = false;				// Force false to only compute one time.
+		this->skybox->setNight(!this->skybox->isNight());
+		keyState[GLFW_KEY_Z] = false;				// Force false to only compute one time.
 	}
 
 	//if (keyState[GLFW_KEY_X] && !keyState[GLFW_KEY_Q])
@@ -865,4 +905,38 @@ void Game::movePlayerAndCamerasBasedOnInput(bool* keyState, float deltaTime)
 bool Game::shouldExit() const
 {
 	return this->bExit;
+}
+
+GameExitInfo Game::getExitInfo() const
+{
+	return this->exitInfo;
+}
+
+void Game::endGameIfNecessary(float leftScore, float rightScore)
+{
+	const int MAX_SCORE = 5;
+
+	if (leftScore >= MAX_SCORE || rightScore >= MAX_SCORE)
+	{
+		this->exitInfo.forcedExit = false;
+		this->exitInfo.leftScore = leftScore;
+		this->exitInfo.rightScore = rightScore;
+
+		if (this->getPlayerByClientLevel(ClientLevel::CLIENT0) == this->player)
+		{
+			if (leftScore > rightScore)
+				this->exitInfo.win = true;
+			else
+				this->exitInfo.win = false;
+		}
+		else
+		{
+			if (leftScore > rightScore)
+				this->exitInfo.win = false;
+			else
+				this->exitInfo.win = true;
+		}
+
+		this->bExit = true;
+	}
 }

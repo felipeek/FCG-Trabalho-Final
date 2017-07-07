@@ -9,7 +9,8 @@ namespace raw
 	enum class ApplicationState
 	{
 		INITIALMENU,
-		GAMERUNNING
+		GAMERUNNING,
+		GAMERESULTS
 	};
 
 	enum class InitialMenuSelection
@@ -44,5 +45,8 @@ namespace raw
 		// Initial Menu
 		Entity* initialMenuEntity;
 		InitialMenuSelection initialMenuSelection;
+
+		// Game results
+		Entity* gameResultsEntity;
 	};
 }
