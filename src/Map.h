@@ -20,7 +20,7 @@ namespace raw
 		float zLength;
 	};
 
-	struct test
+	struct TerrainMesh
 	{
 		std::vector<Vertex> vertices;
 		std::vector<unsigned int> indices;
@@ -39,8 +39,8 @@ namespace raw
 		float getMapYSize() const;
 		float getMapZSize() const;
 	private:
-		test getMeshForBlockedTerrain(float xPos, float zPos) const;
-		test getMeshForFreeTerrain(float xPos, float zPos) const;
+		TerrainMesh getBlockedTerrainVerticesAndIndices(float xPos, float zPos) const;
+		TerrainMesh getFreeTerainVerticesAndIndices(float xPos, float zPos) const;
 		std::vector<MapWallDescriptor> getMapWallDescriptorsForBlockedTerrain(float xPos, float zPos) const;
 		std::vector<MapWallDescriptor> getMapWallDescriptorsForFreeTerrain(float xPos, float zPos) const;
 		float mapXScalement;

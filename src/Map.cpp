@@ -32,7 +32,7 @@ Model* Map::generateMapModel() const
 	std::vector<unsigned int> freeMeshIndices;
 	std::vector<Vertex> freeMeshVertices;
 
-	test t;
+	TerrainMesh terrainMesh;
 	int blockedLastIndex = 0;
 	int freeLastIndex = 0;
 
@@ -45,20 +45,20 @@ Model* Map::generateMapModel() const
 			switch (terrainType)
 			{
 			case TerrainType::BLOCKED:
-				t = this->getMeshForBlockedTerrain(this->mapXScalement * j, this->mapZScalement * i);
-				for (unsigned int i = 0; i < t.indices.size(); ++i)
-					t.indices[i] = t.indices[i] + blockedLastIndex;
-				blockedLastIndex += t.vertices.size();
-				blockedMeshVertices.insert(blockedMeshVertices.end(), t.vertices.begin(), t.vertices.end());
-				blockedMeshIndices.insert(blockedMeshIndices.end(), t.indices.begin(), t.indices.end());
+				terrainMesh = this->getBlockedTerrainVerticesAndIndices(this->mapXScalement * j, this->mapZScalement * i);
+				for (unsigned int i = 0; i < terrainMesh.indices.size(); ++i)
+					terrainMesh.indices[i] = terrainMesh.indices[i] + blockedLastIndex;
+				blockedLastIndex += terrainMesh.vertices.size();
+				blockedMeshVertices.insert(blockedMeshVertices.end(), terrainMesh.vertices.begin(), terrainMesh.vertices.end());
+				blockedMeshIndices.insert(blockedMeshIndices.end(), terrainMesh.indices.begin(), terrainMesh.indices.end());
 				break;
 			case TerrainType::FREE:
-				t = this->getMeshForFreeTerrain(this->mapXScalement * j, this->mapZScalement * i);
-				for (unsigned int i = 0; i < t.indices.size(); ++i)
-					t.indices[i] = t.indices[i] + freeLastIndex;
-				freeLastIndex += t.vertices.size();
-				freeMeshVertices.insert(freeMeshVertices.end(), t.vertices.begin(), t.vertices.end());
-				freeMeshIndices.insert(freeMeshIndices.end(), t.indices.begin(), t.indices.end());
+				terrainMesh = this->getFreeTerainVerticesAndIndices(this->mapXScalement * j, this->mapZScalement * i);
+				for (unsigned int i = 0; i < terrainMesh.indices.size(); ++i)
+					terrainMesh.indices[i] = terrainMesh.indices[i] + freeLastIndex;
+				freeLastIndex += terrainMesh.vertices.size();
+				freeMeshVertices.insert(freeMeshVertices.end(), terrainMesh.vertices.begin(), terrainMesh.vertices.end());
+				freeMeshIndices.insert(freeMeshIndices.end(), terrainMesh.indices.begin(), terrainMesh.indices.end());
 				break;
 			case TerrainType::OUT:
 			default:
@@ -174,7 +174,7 @@ TerrainType Map::getTerrainTypeForMovement(const glm::vec4& position) const
 	return TerrainType::FREE;
 }
 
-test Map::getMeshForBlockedTerrain(float xPos, float zPos) const
+TerrainMesh Map::getBlockedTerrainVerticesAndIndices(float xPos, float zPos) const
 {
 	Vertex vertex[4];
 	std::vector<Vertex> meshVertices;
@@ -391,14 +391,14 @@ test Map::getMeshForBlockedTerrain(float xPos, float zPos) const
 	meshIndices.push_back(3 + 5 * 4);
 	meshIndices.push_back(2 + 5 * 4);
 
-	test t;
+	TerrainMesh t;
 	t.indices = meshIndices;
 	t.vertices = meshVertices;
 
 	return t;
 }
 
-test Map::getMeshForFreeTerrain(float xPos, float zPos) const
+TerrainMesh Map::getFreeTerainVerticesAndIndices(float xPos, float zPos) const
 {
 	Vertex vertex;
 	std::vector<Vertex> meshVertices;
@@ -431,7 +431,7 @@ test Map::getMeshForFreeTerrain(float xPos, float zPos) const
 	meshIndices.push_back(3 + 0 * 4);
 	meshIndices.push_back(2 + 0 * 4);
 
-	test t;
+	TerrainMesh t;
 	t.indices = meshIndices;
 	t.vertices = meshVertices;
 
