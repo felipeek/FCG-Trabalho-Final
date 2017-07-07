@@ -30,6 +30,9 @@ Application::Application(int windowWidth, int windowHeight)
 	// Update window height and width
 	this->windowWidth = windowWidth;
 	this->windowHeight = windowHeight;
+	
+	// Create menu scene
+	this->menuScene = new MenuScene();
 }
 
 Application::~Application()
@@ -38,6 +41,7 @@ Application::~Application()
 	delete this->fixedShader;
 	delete this->initialMenuEntity->getModel();
 	delete this->initialMenuEntity;
+	delete this->menuScene;
 }
 
 bool Application::shouldExit() const
@@ -52,6 +56,7 @@ void Application::render()
 	switch (this->applicationState)
 	{
 	case ApplicationState::INITIALMENU:
+		this->menuScene->render();
 		glDisable(GL_DEPTH_TEST);
 		glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 		glEnable(GL_BLEND);
@@ -72,6 +77,7 @@ void Application::update(float deltaTime)
 	switch (this->applicationState)
 	{
 	case ApplicationState::INITIALMENU:
+		this->menuScene->update(deltaTime);
 		break;
 	case ApplicationState::GAMERUNNING:
 		if (!this->activeGame->shouldExit())

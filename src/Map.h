@@ -35,6 +35,9 @@ namespace raw
 		std::vector<MapWallDescriptor> generateMapWallDescriptors() const;
 		TerrainType getTerrainType(const glm::vec4& position) const;
 		TerrainType getTerrainTypeForMovement(const glm::vec4& position) const;
+		float getMapXSize() const;
+		float getMapYSize() const;
+		float getMapZSize() const;
 	private:
 		test getMeshForBlockedTerrain(float xPos, float zPos) const;
 		test getMeshForFreeTerrain(float xPos, float zPos) const;

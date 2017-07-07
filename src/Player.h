@@ -29,6 +29,13 @@ namespace raw
 		LEFTFOOT
 	};
 
+	enum class HealthIconEffectPhase
+	{
+		STOPPED,
+		GROWING,
+		DECREASING
+	};
+
 	struct ShotMark
 	{
 		Entity* entity;
@@ -45,6 +52,8 @@ namespace raw
 		void setHp(int hp);
 		void removeHp(int damage);
 		int damage(PlayerBodyPart bodyPart);
+		void setSpawnPosition(glm::vec4 spawnPosition);
+		glm::vec4 getSpawnPosition() const;
 		void setWallShotMarkColor(const glm::vec4& wallShotMarkColor);
 		void createShotMark(glm::vec4 position, glm::vec4 color);
 		void setRenderShotMarks(bool renderShotMarks);
@@ -55,7 +64,7 @@ namespace raw
 		Camera* getCamera();
 		void renderGun(const Shader& shader, const Camera& camera, const std::vector<Light*>& lights, bool useNormalMap) const;
 		void Player::renderShotMarks(const Shader& shader, const Camera& camera) const;
-		void renderScreenImages(const Shader& shader) const;
+		void renderScreenImages(const Shader& shader, const Shader& hpBarShader) const;
 		void setMovementInterpolationOn(bool movementInterpolationOn);
 		void pushMovementInterpolation(const glm::vec4& finalPosition, const glm::vec4& velocity,
 			const glm::vec4& acceleration);
@@ -82,7 +91,7 @@ namespace raw
 		void createCamera();
 		void createBoundingBox();
 		void createGun();
-		void createAim();
+		void createScreenImages();
 		void createShootLight();
 		void setIsShootingAnimationOn(bool isShootingAnimationOn);
 		void setIsDamageAnimationOn(bool isDamageAnimationOn);
@@ -93,6 +102,7 @@ namespace raw
 
 		const static int initialHp = 100;
 		int hp;
+		glm::vec4 spawnPosition;
 		glm::vec4 movementVelocity;
 		glm::vec4 movementAcceleration;
 
@@ -103,6 +113,14 @@ namespace raw
 		Entity* firstPersonGunFiring;	// 2D Gun Firing (Fixed in screen)
 		Entity* damageAnimationEntity;	// 2D damageAnimation
 		PointLight* shootLight;
+
+		// Health Icon and Health Bar
+		Entity* healthIcon;
+		const float healthIconSize = 0.085f;
+		const float healthIconMaximumSize = 0.115f;
+		HealthIconEffectPhase healthIconEffectPhase;
+		const float healthIconEffectSizeFactor = 0.23f;
+		Entity* healthBar;
 		
 		// Movement Constants
 		const static float playerMovementAccelerationLength;

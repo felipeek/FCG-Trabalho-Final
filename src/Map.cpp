@@ -516,3 +516,18 @@ std::vector<MapWallDescriptor> Map::getMapWallDescriptorsForFreeTerrain(float xP
 
 	return mapWallDescriptors;
 }
+
+float Map::getMapXSize() const
+{
+	return this->mapWidth * this->mapXScalement;
+}
+
+float Map::getMapYSize() const
+{
+	return this->mapYScalement;
+}
+
+float Map::getMapZSize() const
+{
+	return this->mapHeight * this->mapZScalement;
+}

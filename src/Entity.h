@@ -22,6 +22,7 @@ namespace raw
 		virtual void render(const Shader& shader, const Camera& camera, glm::vec4 solidColor) const;
 		virtual void render(const Shader& shader, const Camera& camera) const;
 		virtual void render(const Shader& shader, float windowRatio) const;
+		virtual void render(const Shader& shader, float windowRatio, float playerHp, float playerMaxHp) const;
 		Transform& getTransform();
 		const Transform& getTransform() const;
 		Model* getModel();

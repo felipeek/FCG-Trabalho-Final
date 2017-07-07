@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Game.h"
+#include "MenuScene.h"
 #include <Windows.h>
 
 namespace raw
@@ -33,6 +34,7 @@ namespace raw
 	private:
 		void createAndRunGame();
 		ApplicationState applicationState;
+		MenuScene* menuScene;
 		Game* activeGame;
 		Shader* fixedShader;
 		int windowHeight;

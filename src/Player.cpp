@@ -26,6 +26,7 @@ Player::Player(Model* model) : Entity(model)
 	this->hp = initialHp;
 	glm::vec4 initialPosition = glm::vec4(1.7f, 0.0f, 1.7f, 1.0f);
 	this->getTransform().setWorldPosition(initialPosition);
+	this->spawnPosition = initialPosition;
 
 	// Set initial velocity and acceleration
 	this->movementVelocity = glm::vec4(0.0f, 0.0f, 0.0f, 0.0f);
@@ -44,7 +45,7 @@ Player::Player(Model* model) : Entity(model)
 	this->createGun();
 
 	// Create player aim
-	this->createAim();
+	this->createScreenImages();
 
 	// Create shot mark model
 	std::vector<Mesh*> shotMarkModelMeshes;
@@ -154,6 +155,12 @@ Player::~Player()
 
 	// Delete shot mark model
 	delete this->shotMarkModel;
+
+	// Delete health related
+	delete this->healthIcon;
+	delete this->healthIcon->getModel();
+	delete this->healthBar;
+	delete this->healthBar->getModel();
 
 	// Destroy Shot Marks
 	for (unsigned int i = 0; i < this->shotMarks.size(); ++i)
@@ -272,7 +279,7 @@ void Player::createGun()
 }
 
 // Create player aim
-void Player::createAim()
+void Player::createScreenImages()
 {
 	// Create aim model and entity
 	const static float aimScalement = 0.1f;
@@ -294,6 +301,21 @@ void Player::createAim()
 	Mesh* firstPersonGunFiringMesh = new Quad(Texture::load(".\\res\\art\\gun_tex_f.png"));
 	Model* firstPersonGunFiringModel = new Model(std::vector<Mesh*>({ firstPersonGunFiringMesh }));
 	this->firstPersonGunFiring = new Entity(firstPersonGunFiringModel);
+
+	// Create Health Icon
+	Mesh* healthIconMesh = new Quad(Texture::load(".\\res\\art\\health_icon.png"));
+	Model* healthIconModel = new Model(std::vector<Mesh*>({ healthIconMesh }));
+	this->healthIcon = new Entity(healthIconModel);
+	this->healthIcon->getTransform().setWorldPosition(glm::vec4(0.85f, -0.9f, 0.0f, 1.0f));
+	this->healthIcon->getTransform().setWorldScale(glm::vec3(healthIconSize));
+	this->healthIconEffectPhase = HealthIconEffectPhase::STOPPED;
+
+	// Create Health Bar
+	Mesh* healthBarMesh = new Quad();
+	Model* healthBarModel = new Model(std::vector<Mesh*>({ healthBarMesh }));
+	this->healthBar = new Entity(healthBarModel);
+	this->healthBar->getTransform().setWorldPosition(glm::vec4(1.25f, -0.9f, 0.0f, 1.0f));
+	this->healthBar->getTransform().setWorldScale(glm::vec3(0.4f, 0.05f, 0.0f));
 }
 
 Camera* Player::getCamera()
@@ -318,7 +340,7 @@ void Player::renderGun(const Shader& shader, const Camera& camera, const std::ve
 // Render aim and first person gun
 // These are just textures that will be rendered in the middle of the screen by a special shader.
 // Blend should be activated and depth test disabled, otherwise they may conflict.
-void Player::renderScreenImages(const Shader& shader) const
+void Player::renderScreenImages(const Shader& shader, const Shader& hpBarShader) const
 {
 	float windowRatio = (float)this->camera->getWindowHeight() / (float)this->camera->getWindowWidth();
 
@@ -335,6 +357,9 @@ void Player::renderScreenImages(const Shader& shader) const
 
 	if (this->isDamageAnimationOn)
 		this->damageAnimationEntity->render(shader, windowRatio);
+
+	this->healthBar->render(hpBarShader, windowRatio, this->hp, this->initialHp);
+	this->healthIcon->render(shader, windowRatio);
 
 	glDisable(GL_BLEND);
 	glEnable(GL_DEPTH_TEST);
@@ -388,6 +413,38 @@ void Player::update(Map* map, float deltaTime)
 			this->setIsDamageAnimationOn(false);
 	}
 
+	// Refresh health icon animation
+	if (this->healthIconEffectPhase == HealthIconEffectPhase::GROWING)
+	{
+		glm::vec3 iconScale = this->healthIcon->getTransform().getWorldScale();
+		glm::vec3 newIconScale = iconScale + this->healthIconEffectSizeFactor * deltaTime * glm::normalize(iconScale);
+
+		if (newIconScale.x >= this->healthIconMaximumSize)
+		{
+			this->healthIcon->getTransform().setWorldScale(glm::vec3(this->healthIconMaximumSize));
+			this->healthIconEffectPhase = HealthIconEffectPhase::DECREASING;
+		}
+		else
+			this->healthIcon->getTransform().setWorldScale(newIconScale);
+	}
+	else if (this->healthIconEffectPhase == HealthIconEffectPhase::DECREASING)
+	{
+		glm::vec3 iconScale = this->healthIcon->getTransform().getWorldScale();
+		glm::vec3 newIconScale = iconScale - this->healthIconEffectSizeFactor * deltaTime * glm::normalize(iconScale);
+
+		if (newIconScale.x <= this->healthIconSize)
+		{
+			this->healthIcon->getTransform().setWorldScale(glm::vec3(this->healthIconSize));
+			this->healthIconEffectPhase = HealthIconEffectPhase::STOPPED;
+
+			// "spring" effect when almost dying
+			//if (this->hp < this->initialHp / 5)
+			//	this->healthIconEffectPhase = HealthIconEffectPhase::GROWING;
+		}
+		else
+			this->healthIcon->getTransform().setWorldScale(newIconScale);
+	}
+
 	// Refresh bouding box entity
 	this->boundingBoxEntity->getTransform().setWorldPosition(this->getTransform().getWorldPosition());
 	this->boundingBoxEntity->getTransform().setWorldRotation(this->getTransform().getWorldRotation());
@@ -398,7 +455,7 @@ void Player::update(Map* map, float deltaTime)
 	{
 		// Player is dead. @TODO
 		// @TEMPORARY?
-		this->getTransform().setWorldPosition(glm::vec4(1.7f, 0.0f, 1.7f, 1.0f));
+		this->getTransform().setWorldPosition(this->spawnPosition);
 		this->setHp(this->initialHp);
 	}
 
@@ -664,6 +721,7 @@ void Player::startDamageAnimation()
 {
 	this->setIsDamageAnimationOn(true);
 	this->damageAnimationTime = glfwGetTime();
+	this->healthIconEffectPhase = HealthIconEffectPhase::GROWING;
 }
 
 // Change player look direction
@@ -858,4 +916,14 @@ void Player::setSlowMovement(bool slowMovement)
 Light* Player::getShootLight()
 {
 	return this->shootLight;
+}
+
+void Player::setSpawnPosition(glm::vec4 spawnPosition)
+{
+	this->spawnPosition = spawnPosition;
+}
+
+glm::vec4 Player::getSpawnPosition() const
+{
+	return this->spawnPosition;
 }

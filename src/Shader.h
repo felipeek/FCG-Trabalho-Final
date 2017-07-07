@@ -16,6 +16,8 @@ const char flatVertexShaderPath[] = ".\\shaders\\FlatShader.vs";
 const char flatFragmentShaderPath[] = ".\\shaders\\FlatShader.fs";
 const char skyboxVertexShaderPath[] = ".\\shaders\\SkyboxShader.vs";
 const char skyboxFragmentShaderPath[] = ".\\shaders\\SkyboxShader.fs";
+const char hpBarVertexShaderPath[] = ".\\shaders\\HpBarShader.vs";
+const char hpBarFragmentShaderPath[] = ".\\shaders\\HpBarShader.fs";
 
 namespace raw
 {
@@ -27,7 +29,8 @@ namespace raw
 		FLAT,
 		GOURAD,
 		PHONG,
-		SKYBOX
+		SKYBOX,
+		HPBAR
 	};
 	
 	class Shader

@@ -60,7 +60,10 @@ void Network::handshake()
 		double currentTime = glfwGetTime();
 		// Send handshake packet
 		if (currentTime > lastTime + sendHandshakeDelay)
+		{
 			this->udpSender->sendMessage(txBuffer, txBufferSize);
+			lastTime = currentTime;
+		}
 
 		// Receive handshake packet
 		if (this->udpReceiver->receiveMessage(rxBuffer, rxBufferSize) > 0)

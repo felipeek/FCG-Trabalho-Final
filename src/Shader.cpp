@@ -43,6 +43,10 @@ Shader::Shader(ShaderType type)
 		vertexShaderPath = skyboxVertexShaderPath;
 		fragmentShaderPath = skyboxFragmentShaderPath;
 		break;
+	case ShaderType::HPBAR:
+		vertexShaderPath = hpBarVertexShaderPath;
+		fragmentShaderPath = hpBarFragmentShaderPath;
+		break;
 	default:
 		vertexShaderPath = basicVertexShaderPath;
 		fragmentShaderPath = basicFragmentShaderPath;

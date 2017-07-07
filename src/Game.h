@@ -72,6 +72,7 @@ namespace raw
 		Shader* gouradShader;
 		Shader* phongShader;
 		Shader* skyboxShader;
+		Shader* hpBarShader;
 
 		// Cameras
 		Camera* freeCamera;

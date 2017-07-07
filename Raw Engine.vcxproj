@@ -134,6 +134,7 @@
   <ItemGroup>
     <ClCompile Include="src\Collision.cpp" />
     <ClCompile Include="src\Application.cpp" />
+    <ClCompile Include="src\MenuScene.cpp" />
     <ClCompile Include="src\Network.cpp" />
     <ClCompile Include="src\Player.cpp" />
     <ClCompile Include="src\Game.cpp" />
@@ -159,6 +160,7 @@
   <ItemGroup>
     <ClInclude Include="src\Collision.h" />
     <ClInclude Include="src\Application.h" />
+    <ClInclude Include="src\MenuScene.h" />
     <ClInclude Include="src\Network.h" />
     <ClInclude Include="src\Player.h" />
     <ClInclude Include="src\Game.h" />

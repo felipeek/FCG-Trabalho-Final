@@ -132,3 +132,14 @@ void Entity::render(const Shader& shader, float windowRatio) const
 
 	this->model->render(shader, false);
 }
+
+void Entity::render(const Shader& shader, float windowRatio, float playerHp, float playerMaxHp) const
+{
+	shader.useProgram();
+	GLuint playerHpLocation = glGetUniformLocation(shader.getProgram(), "playerHp");
+	GLuint playerMaximumHpLocation = glGetUniformLocation(shader.getProgram(), "playerMaximumHp");
+	glUniform1i(playerHpLocation, playerHp);
+	glUniform1i(playerMaximumHpLocation, playerMaxHp);
+
+	Entity::render(shader, windowRatio);
+}

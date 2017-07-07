@@ -74,13 +74,24 @@ void Game::init(const GameSettings& gameSettings)
 	if (!this->singlePlayer)
 	{
 		this->network->handshake();
-		char id[2];
+
+		const glm::vec4 client0Position(1.7f, 0.0f, 1.7f, 1.0f);
+		const glm::vec4 client1Position(22.22f, 0.0f, 21.98f, 1.0f);
+
 		if (this->network->getClientLevel() == ClientLevel::CLIENT0)
-			id[0] = '0';
+		{
+			this->player->getTransform().setWorldPosition(client0Position);
+			this->player->setSpawnPosition(client0Position);
+			this->secondPlayer->getTransform().setWorldPosition(glm::vec4(client1Position));
+			this->secondPlayer->setSpawnPosition(client1Position);
+		}
 		else
-			id[0] = '1';
-		id[1] = 0;
-		MessageBox(0, id, "Client ID", MB_OK);
+		{
+			this->player->getTransform().setWorldPosition(client1Position);
+			this->player->setSpawnPosition(client1Position);
+			this->secondPlayer->getTransform().setWorldPosition(client0Position);
+			this->secondPlayer->setSpawnPosition(client0Position);
+		}
 	}
 }
 
@@ -166,7 +177,7 @@ void Game::render() const
 
 	// Render aim only if player Camera is being used
 	if (this->selectedCamera == CameraType::PLAYER)
-		this->player->renderScreenImages(*fixedShader);
+		this->player->renderScreenImages(*fixedShader, *hpBarShader);
 }
 
 // Update game
@@ -269,6 +280,7 @@ void Game::destroy()
 	delete this->fixedShader;
 	delete this->textureShader;
 	delete this->skyboxShader;
+	delete this->hpBarShader;
 
 	// Destroy Cameras
 	delete this->freeCamera;
@@ -429,6 +441,7 @@ void Game::createShaders()
 	this->gouradShader = new Shader(ShaderType::GOURAD);
 	this->flatShader = new Shader(ShaderType::FLAT);
 	this->skyboxShader = new Shader(ShaderType::SKYBOX);
+	this->hpBarShader = new Shader(ShaderType::HPBAR);
 	this->shaderType = ShaderType::PHONG;
 }
 
@@ -760,9 +773,9 @@ void Game::processInput(bool* keyState, float deltaTime)
 	// Turn on/off some lights to improve FPS
 	if (keyState[GLFW_KEY_L])
 	{
-		for (unsigned int i = 0; i < this->lights.size(); ++i)
+		for (unsigned int i = 0; i < this->streetLamps.size(); ++i)
 		{
-			Light* light = this->lights[i];
+			Light* light = this->streetLamps[i];
 			
 			if (i % 2)
 				light->setOn(!light->isOn());
@@ -776,6 +789,14 @@ void Game::processInput(bool* keyState, float deltaTime)
 	{
 		this->bExit = true;
 		keyState[GLFW_KEY_ESCAPE] = false;				// Force false to only compute one time.
+	}
+
+	// Temporary
+	if (keyState[GLFW_KEY_9])
+	{
+		this->player->damage(PlayerBodyPart::LEFTFOOT);
+		this->player->startDamageAnimation();
+		keyState[GLFW_KEY_9] = false;				// Force false to only compute one time.
 	}
 
 	//if (keyState[GLFW_KEY_X] && !keyState[GLFW_KEY_Q])
