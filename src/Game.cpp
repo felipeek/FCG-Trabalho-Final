@@ -825,12 +825,12 @@ void Game::processInput(bool* keyState, float deltaTime)
 	}
 
 	// Temporary
-	//if (keyState[GLFW_KEY_9])
-	//{
-	//	this->player->damage(PlayerBodyPart::HEAD);
-	//	this->player->startDamageAnimation();
-	//	keyState[GLFW_KEY_9] = false;				// Force false to only compute one time.
-	//}
+	if (keyState[GLFW_KEY_9])
+	{
+		this->player->damage(PlayerBodyPart::HEAD);
+		this->player->startDamageAnimation();
+		keyState[GLFW_KEY_9] = false;				// Force false to only compute one time.
+	}
 
 	// Toggle skybox day/night
 	if (keyState[GLFW_KEY_Z])

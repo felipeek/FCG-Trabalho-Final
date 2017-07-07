@@ -95,6 +95,9 @@ Texture* Mesh::getDiffuseMap() const
 // Also, increase the number of references of new diffuseMap.
 void Mesh::setDiffuseMap(Texture* diffuseMap)
 {
+	if (diffuseMap == this->diffuseMap && diffuseMap != 0)
+		return;
+
 	if (this->diffuseMap != 0)
 	{
 		this->diffuseMap->decreaseReferences();
@@ -123,6 +126,9 @@ Texture* Mesh::getSpecularMap() const
 // Also, increase the number of references of new specularMap.
 void Mesh::setSpecularMap(Texture* specularMap)
 {
+	if (specularMap == this->specularMap && specularMap != 0)
+		return;
+
 	if (this->specularMap != 0)
 	{
 		this->specularMap->decreaseReferences();

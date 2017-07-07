@@ -111,8 +111,8 @@ void Application::update(float deltaTime)
 				}
 				else
 				{
-					Texture* winTex = Texture::load(".\\res\\menu\\lose.png");
-					this->gameResultsEntity->getModel()->setDiffuseMapOfAllMeshes(winTex);
+					Texture* loseTex = Texture::load(".\\res\\menu\\lose.png");
+					this->gameResultsEntity->getModel()->setDiffuseMapOfAllMeshes(loseTex);
 				}
 
 				this->applicationState = ApplicationState::GAMERESULTS;

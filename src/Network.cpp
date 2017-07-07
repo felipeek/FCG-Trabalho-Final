@@ -36,6 +36,8 @@ Network::~Network()
 	delete this->udpSender;
 }
 
+#include <iostream>
+
 // Logic behind this handshaking: each client generates and transmits a random number to each other. When they receive the rand
 // number, they test which number is greater. Depending on this test, they know if they are the client 0 or client 1. If numbers
 // are equal, retransmit.
@@ -63,6 +65,9 @@ void Network::handshake()
 		{
 			this->udpSender->sendMessage(txBuffer, txBufferSize);
 			lastTime = currentTime;
+#ifdef DEBUG
+			std::cout << "Sending Handshake Packet..." << std::endl;
+#endif
 		}
 
 		// Receive handshake packet
@@ -72,17 +77,27 @@ void Network::handshake()
 
 			if (packetId == HANDSHAKE_START)
 			{
+#ifdef DEBUG
+				std::cout << "Handshake packet received from peer." << std::endl;
+#endif
+
 				// Get peer's random number.
 				unsigned int peerRandNumber = *(unsigned int*)(rxBuffer + sizeof(packetId));
 
 				if (randNumber < peerRandNumber)
 				{
+#ifdef DEBUG
+					std::cout << "Sending Last Handshake Packet..." << std::endl;
+#endif
 					this->udpSender->sendMessage(rxBuffer, rxBufferSize);
 					this->clientLevel = ClientLevel::CLIENT0;
 					return;
 				}
 				else if (randNumber > peerRandNumber)
 				{
+#ifdef DEBUG
+					std::cout << "Sending Last Handshake Packet..." << std::endl;
+#endif
 					this->udpSender->sendMessage(rxBuffer, rxBufferSize);
 					this->clientLevel = ClientLevel::CLIENT1;
 					return;
