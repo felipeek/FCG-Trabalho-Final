@@ -16,6 +16,7 @@ using namespace raw;
 enum PacketType
 {
 	HANDSHAKE_START = 0,
+	HANDSHAKE_END = 5,
 	PLAYER_INFORMATION = 1,
 	PLAYER_FIRE_ANIMATION = 2,
 	PLAYER_FIRE_ANIMATION_WITH_WALL_SHOT_MARK = 3,
@@ -55,7 +56,7 @@ void Network::handshake()
 	memcpy(txBuffer + sizeof(packetId), &randNumber, sizeof(randNumber));
 
 	double lastTime = 0;
-	const double sendHandshakeDelay = 1.0;	// Delay to send handshake packet, in seconds
+	const double sendHandshakeDelay = 0.5;	// Delay to send handshake packet, in seconds
 
 	while (true)
 	{
@@ -75,7 +76,7 @@ void Network::handshake()
 		{
 			unsigned int packetId = *(unsigned int*)rxBuffer;
 
-			if (packetId == HANDSHAKE_START)
+			if (packetId == HANDSHAKE_START || packetId == HANDSHAKE_END)
 			{
 #ifdef DEBUG
 				std::cout << "Handshake packet received from peer." << std::endl;
@@ -86,19 +87,15 @@ void Network::handshake()
 
 				if (randNumber < peerRandNumber)
 				{
-#ifdef DEBUG
-					std::cout << "Sending Last Handshake Packet..." << std::endl;
-#endif
-					this->udpSender->sendMessage(rxBuffer, rxBufferSize);
+					this->sendHandshakeUntilConnected(randNumber);
+					//this->udpSender->sendMessage(rxBuffer, rxBufferSize);
 					this->clientLevel = ClientLevel::CLIENT0;
 					return;
 				}
 				else if (randNumber > peerRandNumber)
 				{
-#ifdef DEBUG
-					std::cout << "Sending Last Handshake Packet..." << std::endl;
-#endif
-					this->udpSender->sendMessage(rxBuffer, rxBufferSize);
+					this->sendHandshakeUntilConnected(randNumber);
+					//this->udpSender->sendMessage(rxBuffer, rxBufferSize);
 					this->clientLevel = ClientLevel::CLIENT1;
 					return;
 				}
@@ -107,6 +104,56 @@ void Network::handshake()
 			}
 		}
 	}
+}
+
+void Network::sendHandshakeUntilConnected(unsigned int randNumber)
+{
+	const unsigned int rxBufferSize = 2048;
+	char rxBuffer[rxBufferSize];
+	const unsigned int packetId = HANDSHAKE_END;
+
+	// Build handshake packet
+	const unsigned int txBufferSize = sizeof(packetId) + sizeof(randNumber);
+	char txBuffer[txBufferSize];
+	memcpy(txBuffer, &packetId, sizeof(packetId));
+	memcpy(txBuffer + sizeof(packetId), &randNumber, sizeof(randNumber));
+
+	double packetReceivedTime = glfwGetTime();
+	double lastTime = packetReceivedTime;
+	double currentTime = lastTime;
+	const double timeOutLimit = 1.0;
+	const double sendHandshakeDelay = 0.5;	// Delay to send handshake packet, in seconds
+
+	while (packetReceivedTime + timeOutLimit > currentTime)
+	{
+		// Send handshake packet
+		if (currentTime > lastTime + sendHandshakeDelay)
+		{
+			this->udpSender->sendMessage(txBuffer, txBufferSize);
+			lastTime = currentTime;
+#ifdef DEBUG
+			std::cout << "Sending Handshake Packet..." << std::endl;
+#endif
+		}
+
+		// Receive handshake packet
+		if (this->udpReceiver->receiveMessage(rxBuffer, rxBufferSize) > 0)
+		{
+			unsigned int packetId = *(unsigned int*)rxBuffer;
+
+			if (packetId == HANDSHAKE_START)
+			{
+#ifdef DEBUG
+				std::cout << "Handshake packet received again from peer. Keep sending peer handshake..." << std::endl;
+#endif
+				packetReceivedTime = currentTime;
+			}
+		}
+
+		currentTime = glfwGetTime();
+	}
+
+	return;
 }
 
 void Network::sendPlayerInformation(const Player& player)

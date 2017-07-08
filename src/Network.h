@@ -28,8 +28,7 @@ namespace raw
 		void sendPlayerFireHitAndAnimation(int damage);
 		void receiveAndProcessPackets();
 	private:
-		ClientLevel handshakeStart();
-		void handshakeEnd();
+		void sendHandshakeUntilConnected(unsigned int randNumber);
 		void processPlayerInformationPacket(char* buffer);
 		void processPlayerFireAnimationPacket(char* buffer);
 		void processPlayerFireAnimationWithWallMarksPacket(char* buffer);
