@@ -108,6 +108,8 @@
     <None Include="shaders\SkyboxShader.fs" />
     <None Include="shaders\SkyboxShader.vs" />
     <None Include="vs\RCa04016" />
+    <None Include="shaders\HpBarShader.fs" />
+    <None Include="shaders\HpBarShader.vs" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\Camera.h">

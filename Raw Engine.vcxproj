@@ -194,6 +194,8 @@
     <None Include="shaders\FlatShader.vs" />
     <None Include="shaders\GouradShader.fs" />
     <None Include="shaders\GouradShader.vs" />
+    <None Include="shaders\HpBarShader.fs" />
+    <None Include="shaders\HpBarShader.vs" />
     <None Include="shaders\PhongShader.fs" />
     <None Include="shaders\PhongShader.vs" />
     <None Include="shaders\SkyboxShader.fs" />
