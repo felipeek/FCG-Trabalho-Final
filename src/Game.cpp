@@ -78,7 +78,7 @@ void Game::init(const GameSettings& gameSettings)
 
 	if (!this->singlePlayer)
 	{
-		//this->network->handshake();
+		this->network->handshake();
 
 		const glm::vec4 client0Position(1.7f, 0.0f, 1.7f, 1.0f);
 		const glm::vec4 client1Position(22.22f, 0.0f, 21.98f, 1.0f);

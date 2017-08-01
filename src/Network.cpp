@@ -269,7 +269,7 @@ void Network::processPlayerInformationPacket(char* buffer)
 
 	if (secondPlayer)
 	{
-		//secondPlayer->pushMovementInterpolation(playerPosition, playerVelocity, playerAcceleration);
+		secondPlayer->pushMovementInterpolation(playerPosition, playerVelocity, playerAcceleration);
 		secondPlayer->changeLookDirection(playerLookDirection);
 	}
 }
@@ -324,5 +324,5 @@ void Network::processPlayerFireHitPacket(char* buffer)
 
 ClientLevel Network::getClientLevel()
 {
-	return ClientLevel::CLIENT0;
+	return this->clientLevel;
 }
