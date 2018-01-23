@@ -1,2 +1,2 @@
-# FCG-Trabalho-Final
-Trabalho final da disciplina de Fundamentos de Computação Gráfica
+# Night-Shootout
+Simple 1v1 OpenGL game. Supports networking.
